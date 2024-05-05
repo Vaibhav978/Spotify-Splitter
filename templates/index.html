@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Login</title>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <img src="{{ url_for('static', filename='static/css/SpotifyPicture.jpg') }}" alt="Spotify Logo" class="logo">
+        <div class="description">
+            <h1>Welcome to Spotify Splitter</h1>
+            <p>Log in with your Spotify account.</p>
+        </div>
+        <form action="{{ url_for('login') }}" method="post">
+            <button type="submit">Login To Spotify</button>
+        </form>
+    </div>
+</body>
+</html>
