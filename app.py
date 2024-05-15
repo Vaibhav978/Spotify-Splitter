@@ -119,15 +119,17 @@ def get_artist_album():
 
     data = request.json
     artist_name = data.get('artist_name')
+    num_albums = int(data.get('num_albums'))
 
     # Call your function to get the top albums for the artist
-    albums = get_artist_albums(artist_name,token)
+    albums = get_artist_albums(artist_name,token,num_albums)
 
     if albums:
         return albums
     else:
         print("There are no albums")
         return jsonify([])
+
 
 if __name__ == '__main__':
     app.run(port=5002, host='0.0.0.0', debug=True)

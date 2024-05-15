@@ -53,11 +53,10 @@ def get_artist_id(artist_name):
             print(f"Error: {result.status_code}")
     else:
         print("Token is not available")
-    return None
+        return None
 
-def get_artist_albums(artist_name, token):
+def get_artist_albums(artist_name, token, num_albums):
     artist_id = get_artist_id(artist_name)
-    
     if not artist_id:
         print("Artist not found")
         return jsonify([])
@@ -67,16 +66,58 @@ def get_artist_albums(artist_name, token):
         "Authorization": f"Bearer {token}"
     }
     params = {
-        'limit': 10,  # Limit to 10 albums
+        'limit': num_albums,  # Limit to num_albums
         'include_groups': 'album,single',  # Only include albums and singles
     }
     response = requests.get(url, headers=headers, params=params)
     
     if response.status_code == 200:
-        albums_json = response.json().get('items', [])
-        sorted_albums = sorted(albums_json, key=lambda x: x['release_date'], reverse=True)
+        albums_json = response.json().get('items', [])        
+
+    # Calculate popularity for each album based on the total popularity of its tracks
+        for album in albums_json:
+            album_id = album['id']
+            album['total_popularity'] = get_album_tracks_popularity(album_id, token)
+    
+    # Debug print to ensure 'total_popularity' is added to each album
+        for album in albums_json:
+             print(album['name'], album['total_popularity'])
+    
+    # Sort albums by their total popularity
+        sorted_albums = sorted(albums_json, key=lambda x: x.get('total_popularity', 0), reverse=True)
+    
+        
         # Extract only the necessary parts of each album
-        return sorted_albums
+        return jsonify(sorted_albums)
     else:
         print(f"Error: {response.status_code}")
         return jsonify([])
+
+    
+def get_album_tracks_popularity(album_id, token):
+    total_popularity = 0
+    
+    if not album_id:
+        print("album not found")
+        return 0
+    else:
+        url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        params = {'market': 'US'}
+        response = requests.get(url, headers=headers, params = params)
+        
+        if response.status_code == 200:
+            tracks_json = response.json().get('items')
+            for track in tracks_json:
+                track_popularity = track.get('popularity', 0)
+                total_popularity += track_popularity
+                print(track.get('name') + ' ' + str(total_popularity))
+            return total_popularity
+        else:
+            print("Error:", response.status_code)
+            return 0
+
+
+
