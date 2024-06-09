@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 import base64
 import requests
-from datetime import datetime, timedelta
+import time
 
 token = None
 load_dotenv()
@@ -30,7 +30,7 @@ def get_token_spotify():
     return token
 
 def get_artist_id(artist_name):
-    token = get_token_spotify()  # Make sure to get the token first
+    token = get_token_spotify()
     if token:
         url = "https://api.spotify.com/v1/search"
         params = {
@@ -46,7 +46,7 @@ def get_artist_id(artist_name):
             json_result = result.json()
             artists = json_result.get('artists', {}).get('items', [])
             if artists:
-                return artists[0]['id']  # Return the ID of the first artist
+                return artists[0]['id']
             else:
                 print("No artist found")
         else:
@@ -55,7 +55,7 @@ def get_artist_id(artist_name):
         print("Token is not available")
         return None
 
-def get_artist_albums(artist_name, token, num_albums):
+def get_artist_albums_popularity(artist_name, token, num_albums):
     artist_id = get_artist_id(artist_name)
     if not artist_id:
         print("Artist not found")
@@ -66,39 +66,33 @@ def get_artist_albums(artist_name, token, num_albums):
         "Authorization": f"Bearer {token}"
     }
     params = {
-        'limit': num_albums,  # Limit to num_albums
-        'include_groups': 'album,single',  # Only include albums and singles
+        'limit': num_albums,
+        'include_groups': 'album',
     }
     response = requests.get(url, headers=headers, params=params)
     
     if response.status_code == 200:
-        albums_json = response.json().get('items', [])        
+        albums_json = response.json().get('items', [])
 
-    # Calculate popularity for each album based on the total popularity of its tracks
         for album in albums_json:
             album_id = album['id']
             album['total_popularity'] = get_album_tracks_popularity(album_id, token)
     
-    # Debug print to ensure 'total_popularity' is added to each album
         for album in albums_json:
-             print(album['name'], album['total_popularity'])
+            print(album['name'], album['total_popularity'])
     
-    # Sort albums by their total popularity
         sorted_albums = sorted(albums_json, key=lambda x: x.get('total_popularity', 0), reverse=True)
     
-        
-        # Extract only the necessary parts of each album
         return jsonify(sorted_albums)
     else:
         print(f"Error: {response.status_code}")
         return jsonify([])
 
-    
 def get_album_tracks_popularity(album_id, token):
     total_popularity = 0
     
     if not album_id:
-        print("album not found")
+        print("Album not found")
         return 0
     else:
         url = f"https://api.spotify.com/v1/albums/{album_id}/tracks"
@@ -106,18 +100,53 @@ def get_album_tracks_popularity(album_id, token):
             "Authorization": f"Bearer {token}"
         }
         params = {'market': 'US'}
-        response = requests.get(url, headers=headers, params = params)
+        response = make_request_with_retry(url, headers, params)
         
-        if response.status_code == 200:
-            tracks_json = response.json().get('items')
-            for track in tracks_json:
-                track_popularity = track.get('popularity', 0)
-                total_popularity += track_popularity
-                print(track.get('name') + ' ' + str(total_popularity))
+        if response and response.status_code == 200:
+            tracks_json = response.json().get('items', [])
+            track_ids = [track['id'] for track in tracks_json]
+
+            # Batch fetch track details to avoid rate limits
+            batch_size = 10  # Number of tracks to fetch per batch
+            for i in range(0, len(track_ids), batch_size):
+                batch = track_ids[i:i + batch_size]
+                track_popularities = get_tracks_popularity(batch, token)
+                if track_popularities:
+                    total_popularity += sum(track_popularities)
+
             return total_popularity
         else:
             print("Error:", response.status_code)
             return 0
 
+def get_tracks_popularity(track_ids, token):
+    popularities = []
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    for track_id in track_ids:
+        url = f"https://api.spotify.com/v1/tracks/{track_id}"
+        response = make_request_with_retry(url, headers)
+        
+        if response and response.status_code == 200:
+            track_json = response.json()
+            popularity = track_json.get('popularity', 0)
+            popularities.append(popularity)
+        else:
+            print("Error:", response.status_code)
+            popularities.append(0)  # Add 0 popularity if there's an error
 
+    return popularities
 
+def make_request_with_retry(url, headers, params=None, retries=5):
+    delay = 1
+    for i in range(retries):
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 429:  # Rate limit exceeded
+            retry_after = int(response.headers.get("Retry-After", delay))
+            print(f"Rate limit exceeded. Retrying after {retry_after} seconds.")
+            time.sleep(retry_after)
+            delay *= 2  # Exponential backoff
+        else:
+            return response
+    return None

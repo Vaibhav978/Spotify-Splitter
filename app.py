@@ -122,7 +122,7 @@ def get_artist_album():
     num_albums = int(data.get('num_albums'))
 
     # Call your function to get the top albums for the artist
-    albums = get_artist_albums(artist_name,token,num_albums)
+    albums = get_artist_albums_popularity(artist_name,token,num_albums)
 
     if albums:
         return albums
@@ -133,3 +133,6 @@ def get_artist_album():
 
 if __name__ == '__main__':
     app.run(port=5002, host='0.0.0.0', debug=True)
+
+# @app.route("/splitter", methods = ['POST'])
+# def render_splitter():

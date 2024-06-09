@@ -21,7 +21,7 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify({ 'artist_name': artistName, 'num_albums': numAlbums }),
             success: function(response) {
-                displayAlbums(response);
+                displayAlbums(response, artistName, numAlbums);
             },
             error: function(xhr, status, error) {
                 console.error('Error:', error);
@@ -30,12 +30,14 @@ $(document).ready(function() {
     });
 });
 
-function displayAlbums(albums) {
+function displayAlbums(albums, artist_name, num_albums) {
     var searchResults = $('#searchResults');
     searchResults.empty();  // Clear previous results
-
+    var heading = $('<h2>').text('Top ' + num_albums + ' Albums by ' + artist_name); // Fix typo here
+    searchResults.append(heading);
     albums.forEach(function(album, index) {
         var albumElement = $('<div>').addClass('album').text((index + 1) + '. ' + album.name);
         searchResults.append(albumElement);
     });
 }
+
