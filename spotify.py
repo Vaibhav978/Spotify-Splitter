@@ -74,13 +74,12 @@ def get_artist_albums_popularity(artist_name, token, num_albums):
     if response.status_code == 200:
         albums_json = response.json().get('items', [])
 
+        # Populate total popularity for each album
         for album in albums_json:
             album_id = album['id']
             album['total_popularity'] = get_album_tracks_popularity(album_id, token)
     
-        for album in albums_json:
-            print(album['name'], album['total_popularity'])
-    
+        # Sort the albums by total popularity
         sorted_albums = sorted(albums_json, key=lambda x: x.get('total_popularity', 0), reverse=True)
     
         return jsonify(sorted_albums)

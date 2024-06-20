@@ -36,6 +36,23 @@
             background-color: #1ed760; /* Darker Green */
         }
     </style>
+    <script>
+        async function shutdownServer() {
+            const userIP = await fetch('https://api.ipify.org?format=json')
+                .then(response => response.json())
+                .then(data => data.ip);
+
+            if (userIP === '127.0.0.1') {
+                fetch('/shutdown', { method: 'POST' })
+                    .then(response => response.text())
+                    .then(data => {
+                        alert(data);
+                    });
+            } else {
+                alert('Shutdown request forbidden: not from localhost');
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="header">
@@ -44,6 +61,9 @@
     <div>
         <a href="http://127.0.0.1:5002/user" class="btn">Find Artists Top Albums</a>
         <a href="http://127.0.0.1:5002/splitter" class="btn">Spotify Album Splitter</a>
+    </div>
+    <div>
+        <button class="btn" onclick="shutdownServer()">Shutdown Server</button>
     </div>
 </body>
 </html>
