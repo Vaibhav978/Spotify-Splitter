@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Album Splitter</title>
+    <title>Welcome</title>
     <link rel="stylesheet" href="styles.css"> <!-- Link to your external stylesheet -->
     <style>
-        /* Additional styling for the splitter page */
+        /* Additional styling for the homepage */
         body {
             background-color: black;
             color: white;
@@ -15,12 +15,9 @@
             font-family: Arial, sans-serif;
             text-align: center;
         }
-        .header {
+        .header { 
             margin-top: 50px;
             margin-bottom: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         .btn {
             display: inline-block;
@@ -38,18 +35,15 @@
         .btn:hover {
             background-color: #1ed760; /* Darker Green */
         }
-        .back-btn {
-            margin-left: 20px;
-        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Spotify Album Splitter</h1>
-        <a href="http://127.0.0.1:5002/homepage" class="btn back-btn">Back to Home</a>
+        <h1>Welcome {{ display_name }}!</h1>
     </div>
     <div>
-        <!-- Add content for the Spotify Album Splitter here -->
+        <a href="http://127.0.0.1:5002/user" class="btn">Find Artists Top Albums</a>
+        <a href="http://127.0.0.1:5002/splitter" class="btn">Spotify Album Splitter</a>
     </div>
 </body>
 </html>

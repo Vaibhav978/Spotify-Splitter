@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort
 from dotenv import load_dotenv
 import os
 import base64
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from spotify import *
 
 app = Flask(__name__, static_url_path='/static')
-SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/user'
+SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
 load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
@@ -131,8 +131,45 @@ def get_artist_album():
         return jsonify([])
 
 
+
+@app.route("/splitter")
+def render_splitter():
+    code = request.args.get("code")
+    token = get_token(code)
+    if code and not token:  # If there's a code but no token in the session
+        token = get_token(code)
+        set_token(token)
+    # Now you have the access token, you can make requests to user-specific endpoints
+    if token:
+        user_data = get_user_json_data(token)
+        display_name = user_data.get('display_name', '')
+    else:
+        display_name = ""
+    return render_template('splitter.html', display_name=display_name)
+@app.route("/homepage")
+def render_homepage():
+    code = request.args.get("code")
+    token = get_token(code)
+    if code and not token:  # If there's a code but no token in the session
+        token = get_token(code)
+        set_token(token)
+    # Now you have the access token, you can make requests to user-specific endpoints
+    if token:
+        user_data = get_user_json_data(token)
+        display_name = user_data.get('display_name', '')
+    else:
+        display_name = ""
+    return render_template('homepage.html', display_name=display_name)
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    if not request.remote_addr == '127.0.0.1':
+        abort(403)  # Forbidden
+
+    shutdown_server = request.environ.get('werkzeug.server.shutdown')
+    if shutdown_server is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    shutdown_server()
+    return 'Server shutting down...'
+
 if __name__ == '__main__':
     app.run(port=5002, host='0.0.0.0', debug=True)
-
-# @app.route("/splitter", methods = ['POST'])
-# def render_splitter():
