@@ -1,30 +1,36 @@
-/* Existing styling */
+/* Global Styling */
 body {
     font-family: Arial, sans-serif;
     background-color: black;
     color: white;
     margin: 0;
     padding: 0;
+    text-align: center;
 }
 
+/* Container for centering content */
 .container {
     max-width: 600px;
     margin: 100px auto;
     text-align: center;
 }
 
+/* Logo Styling */
 .logo {
     width: 150px;
     margin-bottom: 20px;
 }
 
+/* Description Styling */
 .description {
     margin-bottom: 30px;
 }
 
+/* Input and Button Styling */
 input[type="text"],
 input[type="password"],
-button {
+button,
+[type="submit"] {
     display: block;
     width: 100%;
     padding: 10px;
@@ -33,13 +39,17 @@ button {
     border-radius: 5px;
 }
 
-button {
-    background-color: #1DB954;
+/* Button Styling */
+button,
+[type="submit"] {
+    background-color: #1DB954; /* Green */
     color: white;
     cursor: pointer;
 }
-button:hover {
-    background-color: #1ed760;
+
+button:hover,
+[type="submit"]:hover {
+    background-color: #1ed760; /* Darker Green */
 }
 
 /* Dropdown Menu */
@@ -72,24 +82,30 @@ button:hover {
     display: block;
 }
 
-/* Buttons */
-.button,
-[type="submit"] {
-    background-color: #1DB954; /* Green */
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
+/* Specific Button Styling */
+.btn {
     display: inline-block;
-    font-size: 16px;
-    margin: 4px 2px;
-    transition-duration: 0.4s;
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #1DB954;
+    color: white;
+    text-decoration: none;
+    border: none;
     cursor: pointer;
     border-radius: 5px;
+    margin: 10px;
+    transition-duration: 0.4s;
 }
 
-.button:hover,
-[type="submit"]:hover {
+.btn:hover {
     background-color: #1ed760; /* Darker Green */
+}
+
+.back-btn {
+    margin-left: 20px;
+}
+
+.header {
+    margin-top: 50px;
+    margin-bottom: 30px;
 }

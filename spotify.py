@@ -1,20 +1,25 @@
-from flask import jsonify
+from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import os
 import base64
 import requests
 import time
 
-token = None
+app = Flask(__name__)
+
+# Load environment variables
 load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
+
+token = None
 
 def set_token(new_token):
     global token
     token = new_token
 
 def get_token_spotify():
+    global token
     auth_string = f"{client_id}:{client_secret}"
     auth_bytes = auth_string.encode("utf-8")
     auth_base64 = base64.b64encode(auth_bytes)
@@ -25,12 +30,19 @@ def get_token_spotify():
     }
     data = {"grant_type": "client_credentials"}
     result = requests.post(url, headers=headers, data=data)
-    json_result = result.json()
-    token = json_result.get("access_token")
-    return token
+    if result.status_code == 200:
+        json_result = result.json()
+        token = json_result.get("access_token")
+        return token
+    else:
+        print(f"Error {result.status_code}: Unable to get token")
+        print(result.text)
+        return None
 
 def get_artist_id(artist_name):
-    token = get_token_spotify()
+    global token
+    if not token:
+        token = get_token_spotify()
     if token:
         url = "https://api.spotify.com/v1/search"
         params = {
@@ -51,11 +63,15 @@ def get_artist_id(artist_name):
                 print("No artist found")
         else:
             print(f"Error: {result.status_code}")
+            print(result.text)
     else:
         print("Token is not available")
-        return None
+    return None
 
-def get_artist_albums_popularity(artist_name, token, num_albums):
+def get_artist_albums_popularity(artist_name, num_albums):
+    global token
+    if not token:
+        token = get_token_spotify()
     artist_id = get_artist_id(artist_name)
     if not artist_id:
         print("Artist not found")
@@ -77,16 +93,36 @@ def get_artist_albums_popularity(artist_name, token, num_albums):
         # Populate total popularity for each album
         for album in albums_json:
             album_id = album['id']
-            album['total_popularity'] = get_album_tracks_popularity(album_id, token)
-    
+            album['total_popularity'] = get_album_popularity_direct(album_id, token)
+        print("Calculated popularity")
         # Sort the albums by total popularity
         sorted_albums = sorted(albums_json, key=lambda x: x.get('total_popularity', 0), reverse=True)
     
         return jsonify(sorted_albums)
     else:
         print(f"Error: {response.status_code}")
+        print(response.text)
         return jsonify([])
 
+def get_album_popularity_direct(album_id, token):
+    if not album_id:
+        print("Album not found")
+        return 0
+    url = f"https://api.spotify.com/v1/albums/{album_id}"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    params = {'market': 'US'}
+    response = make_request_with_retry(url, headers, params)
+
+    if response and response.status_code == 200:
+        album_json = response.json()
+        return album_json.get('popularity', 0)
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.text)
+        return 0
+    
 def get_album_tracks_popularity(album_id, token):
     total_popularity = 0
     
@@ -116,6 +152,7 @@ def get_album_tracks_popularity(album_id, token):
             return total_popularity
         else:
             print("Error:", response.status_code)
+            print(response.text)
             return 0
 
 def get_tracks_popularity(track_ids, token):
@@ -133,6 +170,7 @@ def get_tracks_popularity(track_ids, token):
             popularities.append(popularity)
         else:
             print("Error:", response.status_code)
+            print(response.text)
             popularities.append(0)  # Add 0 popularity if there's an error
 
     return popularities
@@ -149,3 +187,15 @@ def make_request_with_retry(url, headers, params=None, retries=5):
         else:
             return response
     return None
+
+
+# # Example Flask endpoint to use the function
+# @app.route('/search_artist', methods=['POST'])
+# def search_artist():
+#     artist_name = request.form.get('artist_name')
+#     num_albums = int(request.form.get('num_albums', 10))  # Default to 10 albums if not specified
+#     albums = get_artist_albums_popularity(artist_name, num_albums)
+#     return albums
+
+# if __name__ == '__main__':
+#     app.run(debug=True, port=5002)

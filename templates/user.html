@@ -7,20 +7,23 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <h1>Welcome {{ display_name }}!</h1>
-    <p>Enter an Artist Name to get their most popular albums</p>
+    <div class="container">
+        <h1>Welcome {{ display_name }}!</h1>
+        <p>Enter an Artist Name to get their most popular albums</p>
+        <a href="http://127.0.0.1:5002/homepage" class="btn back-btn">Back to Home</a>
 
-    <form id="searchArtist">
-        <label for="artist_name">Artist Name:</label>
-        <input type="text" id="artist_name" maxlength = 50 name="artist_name" required>
-        <label for="album_count">Number of Albums:</label>
-        <select id="num_albums">
-    <!-- Options will be populated by JavaScript -->
-        </select>          
-        <input type="submit" value="Search">
-    </form>
+        <form id="searchArtist">
+            <label for="artist_name">Artist Name:</label>
+            <input type="text" id="artist_name" maxlength="50" name="artist_name" required>
+            <label for="album_count">Number of Albums:</label>
+            <select id="num_albums">
+                <!-- Options will be populated by JavaScript -->
+            </select>          
+            <input type="submit" value="Search">
+        </form>
 
-    <div id="searchResults"></div>
+        <div id="searchResults"></div>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='javascript/searchArtist.js') }}"></script>

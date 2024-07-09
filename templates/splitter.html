@@ -4,44 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Album Splitter</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to your external stylesheet -->
-    <style>
-        /* Additional styling for the splitter page */
-        body {
-            background-color: black;
-            color: white;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        .header {
-            margin-top: 50px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            font-size: 18px;
-            background-color: #1DB954;
-            color: white;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            margin: 10px;
-            transition-duration: 0.4s;
-        }
-        .btn:hover {
-            background-color: #1ed760; /* Darker Green */
-        }
-        .back-btn {
-            margin-left: 20px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="{{ url_for('static', filename='js/splitter.js') }}"></script>
 </head>
 <body>
     <div class="header">
@@ -49,7 +13,13 @@
         <a href="http://127.0.0.1:5002/homepage" class="btn back-btn">Back to Home</a>
     </div>
     <div>
-        <!-- Add content for the Spotify Album Splitter here -->
+        <button class="btn" onclick="submitAlbum()">Get Tracks</button>
     </div>
+    <div id="tracks-container">
+        <!-- Tracks will be displayed here -->
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='javascript/splitter.js') }}"></script>
 </body>
 </html>
