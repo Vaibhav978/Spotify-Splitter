@@ -5,14 +5,14 @@ import base64
 import requests
 from datetime import datetime, timedelta
 from spotify import * 
+import asyncio
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)  # Add this line for session management
 SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
 load_dotenv()
-cli=ent_id = os.getenv("CLIENT_ID")
+client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
-
 token = None  # Initialize token to None
 token_expiration = None  # Global variable to store token expiration time
 
@@ -44,7 +44,7 @@ def refresh_token():
         "grant_type": "refresh_token",
         "refresh_token": refresh_token
     }
-
+    print("Attempting to refresh token")
     response = requests.post(url, headers=headers, data=data)
     if response.status_code == 200:
         json_result = response.json()
@@ -85,10 +85,11 @@ def get_token(code):
 
     response = requests.post(url, headers=headers, data=data)
     json_result = response.json()
+    print(json_result)
     token = json_result.get("access_token")
-    refresh_token = json_result.get("refresh_token")
+    refresh = json_result.get("refresh_token")
     session['token'] = token
-    session['refresh_token'] = refresh_token
+    session['refresh_token'] = refresh
     session['token_expiration'] = calculate_token_expiration().isoformat()
     set_token(token)
     return token
@@ -115,16 +116,8 @@ def renderWebsite():
 
 @app.route('/login')
 def login():
-    # Here you should perform authentication
-    # For now, let's assume authentication is successful
-
-    # Define the list of scopes your application needs
-    scopes = "user-read-private user-read-email"
-
-    # Construct the Spotify authorization URL with the specified scopes
-    spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes}"
-
-
+    scopes = "user-read-private user-read-email user-library-read"
+    spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
     return redirect(spotify_auth_url)
 
 @app.route("/user")
@@ -227,6 +220,39 @@ def get_user_playlists(token):
         print("Error:", response.status_code)
         print(response.text)
         return []
+    
+def get_user_tracks(token):
+    url = "https://api.spotify.com/v1/me/tracks"
+    headers = {"Authorization": f"Bearer {token}"}
+    all_tracks = []
+    limit = 50
+    offset = 0
+
+    while True:
+        params = {
+            "limit": limit,
+            "offset": offset
+        }
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            tracks = response.json().get('items', [])
+            if not tracks:
+                break
+            all_tracks.extend(tracks)
+            offset += limit
+        elif response.status_code == 401:
+            # Refresh the token here
+            token = refresh_token()
+            if not token:
+                print("Failed to refresh token")
+                break
+            headers = {"Authorization": f"Bearer {token}"}
+        else:
+            print("Error:", response.status_code)
+            print(response.text)
+            break
+
+    return all_tracks
 
 def get_playlist_tracks(playlist_id, token):
     url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
@@ -238,6 +264,9 @@ def get_playlist_tracks(playlist_id, token):
         print("Error:", response.status_code)
         print(response.text)
         return []
+    
+
+
 
 def get_track_features(track_id, token):
     url = f"https://api.spotify.com/v1/audio-features/{track_id}"
@@ -248,7 +277,7 @@ def get_track_features(track_id, token):
     else:
         print("Error:", response.status_code)
         print(response.text)
-        return {}
+        return []
 
 def get_artist_details(artist_id, token):
     url = f"https://api.spotify.com/v1/artists/{artist_id}"
@@ -259,25 +288,26 @@ def get_artist_details(artist_id, token):
     else:
         print("Error:", response.status_code)
         print(response.text)
-        return {}
+        return []
+    
 
 def construct_tracks_json(token):
-    playlists = get_user_playlists(token)
-    print("Got user playlists")
+    print("Entered construct_tracks ")
+    
     all_tracks = []
-
-    for playlist in playlists:
-        playlist_id = playlist['id']
-        tracks = get_playlist_tracks(playlist_id, token)
-
-        for item in tracks:
+    user_tracks = get_user_tracks(token)
+    print("obtained user_tracks")
+    count = 1
+    for item in user_tracks:
             track = item['track']
             track_id = track['id']
             track_name = track['name']
+            print(f"{count}. Working with track {track_name}")
             artists = track['artists']
             album = track['album']
             genres = []
             features = get_track_features(track_id, token)
+            count += 1
 
             for artist in artists:
                 artist_details = get_artist_details(artist['id'], token)
@@ -292,7 +322,8 @@ def construct_tracks_json(token):
                 'features': features
             }
             all_tracks.append(track_info)
-
+    print("All tracks ")
+    print(all_tracks)
     return all_tracks
 
 
@@ -312,14 +343,6 @@ def get_tracks():
     print("Returning tracks:", tracks)
     return jsonify(tracks)
 
-
-def get_user_tracks_json():
-    if token:
-        return construct_tracks_json(token)
-    else:
-        print("Error: Token not available")
-        return []
-  
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
