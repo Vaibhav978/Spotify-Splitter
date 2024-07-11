@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/Users/Vaibhav/Web Dev/Python-Spotify/myenv/bin/python" "$0" "$@"
-' '''
+#!/Users/Vaibhav/Web_Dev/Python-Spotify/myenv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

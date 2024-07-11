@@ -6,6 +6,10 @@ import requests
 from datetime import datetime, timedelta
 from spotify import * 
 import asyncio
+import aiohttp
+import httpx
+import spotify
+
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)  # Add this line for session management
