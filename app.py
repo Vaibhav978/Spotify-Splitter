@@ -122,7 +122,7 @@ async def construct_tracks_json(sp):
     offset = 0
     limit = 50  # Number of tracks to fetch per batch
 
-    user_tracks = sp.current_user_saved_tracks(limit=limit, offset=offset)
+    user_tracks = sp.current_user_saved_tracks(limit = limit, offset = offset)
     while user_tracks['items']:
         track_ids = [item['track']['id'] for item in user_tracks['items']]
         features_batch = get_audio_features_with_retry(sp, track_ids)
@@ -162,13 +162,11 @@ async def construct_tracks_json(sp):
         await asyncio.sleep(0.2)  # Small delay to prevent overwhelming the API
 
     return all_tracks
-
-
 def get_audio_features_with_retry(sp, track_ids):  # Takes a list of track IDs
     retries = 3
     for attempt in range(retries):
         try:
-            features = spotify_api_request(sp, sp.audio_features, tracks=track_ids)
+            features = spotify_api_request(sp.audio_features, tracks=track_ids)
             if features:
                 return features 
             else:
@@ -181,9 +179,7 @@ def get_audio_features_with_retry(sp, track_ids):  # Takes a list of track IDs
             else:
                 logging.error(f"Spotify API error: {e}")
                 raise
-
-
-def spotify_api_request(sp, method, *args, **kwargs):
+def spotify_api_request(method, *args, **kwargs):
     retries = 3  # Number of retries
     for attempt in range(retries):
         try:
