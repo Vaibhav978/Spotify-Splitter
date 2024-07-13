@@ -9,6 +9,8 @@ from spotipy.oauth2 import SpotifyOAuth
 import asyncio
 import time
 from spotify import *
+import spotipy 
+import logging
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -117,17 +119,24 @@ async def construct_tracks_json(sp):
     print("Entered construct tracks")
     all_tracks = []
     count = 1
-    user_tracks = sp.current_user_saved_tracks()
-    while user_tracks:
-        for item in user_tracks['items']:
-            track = item['track']
-            track_id = track['id']
+    offset = 0
+    limit = 50  # Number of tracks to fetch per batch
+
+    user_tracks = sp.current_user_saved_tracks(limit=limit, offset=offset)
+    while user_tracks['items']:
+        track_ids = [item['track']['id'] for item in user_tracks['items']]
+        features_batch = get_audio_features_with_retry(sp, track_ids)
+
+        for track_id, features in zip(track_ids, features_batch):
+            track = next((item['track'] for item in user_tracks['items'] if item['track']['id'] == track_id), None)
+            if not track:
+                continue
+            
             track_name = track['name']
-            print(f"{count}. {track_name}")
             album = track['album']['name']
             artist = track['artists'][0]['name']
             popularity = track.get('popularity')
-            features = get_audio_features_with_retry(sp, track_id)
+
             if features:
                 track_info = {
                     "name": track_name,
@@ -146,27 +155,48 @@ async def construct_tracks_json(sp):
                 }
                 count += 1
                 all_tracks.append(track_info)
-        if user_tracks['next']:
-            user_tracks = sp.next(user_tracks)
-        else:
-            break
+
+        offset += limit
+        user_tracks = sp.current_user_saved_tracks(limit=limit, offset=offset)
+
+        await asyncio.sleep(0.2)  # Small delay to prevent overwhelming the API
+
     return all_tracks
 
-def get_audio_features_with_retry(sp, track_id, retries=5, backoff_factor=2):
-    for i in range(retries):
-        try:
-            features = sp.audio_features(track_id)[0]
-            return features
-        except spotipy.exceptions.SpotifyException as e:
-            if e.http_status == 429:
-                retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
-                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
-                time.sleep(retry_after)
-            else:
-                raise e
-    print(f"Failed to retrieve audio features for track {track_id} after {retries} retries")
-    return None
 
+def get_audio_features_with_retry(sp, track_ids):  # Takes a list of track IDs
+    retries = 3
+    for attempt in range(retries):
+        try:
+            features = spotify_api_request(sp, sp.audio_features, tracks=track_ids)
+            if features:
+                return features 
+            else:
+                return [None] * len(track_ids)  # Return None for each track if features not available
+        except spotipy.SpotifyException as e:
+            if e.http_status == 429:
+                retry_after = int(e.headers.get('Retry-After', 1))
+                logging.warning(f"Rate limited. Retrying after {retry_after} seconds (attempt {attempt + 1}/{retries})")
+                time.sleep(retry_after + 1)
+            else:
+                logging.error(f"Spotify API error: {e}")
+                raise
+
+
+def spotify_api_request(sp, method, *args, **kwargs):
+    retries = 3  # Number of retries
+    for attempt in range(retries):
+        try:
+            result = method(*args, **kwargs)
+            return result
+        except spotipy.SpotifyException as e:
+            if e.http_status == 429:  # Rate limit error
+                retry_after = int(e.headers.get('Retry-After', 1))
+                logging.warning(f"Rate limited. Retrying after {retry_after} seconds (attempt {attempt + 1}/{retries})")
+                time.sleep(retry_after + 1)  # Add a bit of extra buffer
+            else:
+                logging.error(f"Spotify API error: {e}")
+                raise  # Re-raise the exception if it's not rate limiting
 @app.route("/")
 def renderWebsite():
     return render_template('index.html')
