@@ -4,32 +4,35 @@ import os
 import base64
 import requests
 from datetime import datetime, timedelta
-import certifi
-import ssl
-from aiohttp import ClientSession
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyOAuth
 import asyncio
-import logging
+import time
 from spotify import *
+
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
 SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
 load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
-token = None
-token_expiration = None
-SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+scope = "user-library-read user-read-private user-read-email"
+
+def create_spotify_oauth():
+    return SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=SPOTIFY_REDIRECT_URI,
+        scope=scope
+    )
 
 def token_expired():
-    global token_expiration
+    token_expiration = session.get('token_expiration')
     if token_expiration:
-        return token_expiration < datetime.now()
+        return datetime.fromisoformat(token_expiration) < datetime.now()
     return True
 
 def refresh_token():
-    global token
-    global token_expiration
-
     refresh_token = session.get('refresh_token')
     if not refresh_token:
         print("Refresh token not available")
@@ -48,7 +51,7 @@ def refresh_token():
         "grant_type": "refresh_token",
         "refresh_token": refresh_token
     }
-    print("Attempting to refresh token")
+
     response = requests.post(url, headers=headers, data=data)
     if response.status_code == 200:
         json_result = response.json()
@@ -66,11 +69,9 @@ def calculate_token_expiration():
     return datetime.now() + timedelta(hours=1)
 
 def set_token(new_token):
-    global token
-    token = new_token
+    session['token'] = new_token
 
 def get_token(code):
-    global token
     auth_string = f"{client_id}:{client_secret}"
     auth_bytes = auth_string.encode("utf-8")
     auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
@@ -94,7 +95,6 @@ def get_token(code):
     session['token'] = token
     session['refresh_token'] = refresh
     session['token_expiration'] = calculate_token_expiration().isoformat()
-    set_token(token)
     return token
 
 def get_user_json_data(token):
@@ -113,6 +113,60 @@ def get_user_json_data(token):
         print("Error: Token not available")
         return None
 
+async def construct_tracks_json(sp):
+    print("Entered construct tracks")
+    all_tracks = []
+    count = 1
+    user_tracks = sp.current_user_saved_tracks()
+    while user_tracks:
+        for item in user_tracks['items']:
+            track = item['track']
+            track_id = track['id']
+            track_name = track['name']
+            print(f"{count}. {track_name}")
+            album = track['album']['name']
+            artist = track['artists'][0]['name']
+            popularity = track.get('popularity')
+            features = get_audio_features_with_retry(sp, track_id)
+            if features:
+                track_info = {
+                    "name": track_name,
+                    "album": album,
+                    "artist": artist,
+                    "popularity": popularity,
+                    "acousticness": features.get('acousticness'),
+                    "danceability": features.get('danceability'),
+                    "energy": features.get('energy'),
+                    "instrumentalness": features.get('instrumentalness'),
+                    "liveness": features.get('liveness'),
+                    "loudness": features.get('loudness'),
+                    "speechiness": features.get('speechiness'),
+                    "tempo": features.get('tempo'),
+                    "valence": features.get('valence'),
+                }
+                count += 1
+                all_tracks.append(track_info)
+        if user_tracks['next']:
+            user_tracks = sp.next(user_tracks)
+        else:
+            break
+    return all_tracks
+
+def get_audio_features_with_retry(sp, track_id, retries=5, backoff_factor=2):
+    for i in range(retries):
+        try:
+            features = sp.audio_features(track_id)[0]
+            return features
+        except spotipy.exceptions.SpotifyException as e:
+            if e.http_status == 429:
+                retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
+                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
+                time.sleep(retry_after)
+            else:
+                raise e
+    print(f"Failed to retrieve audio features for track {track_id} after {retries} retries")
+    return None
+
 @app.route("/")
 def renderWebsite():
     return render_template('index.html')
@@ -127,22 +181,15 @@ def login():
 def render_user_page():
     code = request.args.get("code")
     token = session.get('token')
-    token_expiration = session.get('token_expiration')
 
-    if token and token_expiration:
-        token_expiration = datetime.fromisoformat(token_expiration)
     if code and (not token or token_expired()):
         token = get_token(code)
-        set_token(token)
         session['token'] = token
-        session['token_expiration'] = calculate_token_expiration().isoformat()
 
     if token:
         user_data = get_user_json_data(token)
         display_name = user_data.get('display_name', '')
-        user_id = user_data.get('id', '')
         session['display_name'] = display_name
-        session['user_id'] = user_id
     else:
         display_name = session.get('display_name', '')
 
@@ -171,15 +218,10 @@ def get_artist_album():
 def render_splitter():
     code = request.args.get("code")
     token = session.get('token')
-    token_expiration = session.get('token_expiration')
 
-    if token and token_expiration:
-        token_expiration = datetime.fromisoformat(token_expiration)
     if code and (not token or token_expired()):
         token = get_token(code)
-        set_token(token)
         session['token'] = token
-        session['token_expiration'] = calculate_token_expiration().isoformat()
 
     if token:
         user_data = get_user_json_data(token)
@@ -194,15 +236,10 @@ def render_splitter():
 def render_homepage():
     code = request.args.get("code")
     token = session.get('token')
-    token_expiration = session.get('token_expiration')
 
-    if token and token_expiration:
-        token_expiration = datetime.fromisoformat(token_expiration)
     if code and (not token or token_expired()):
         token = get_token(code)
-        set_token(token)
         session['token'] = token
-        session['token_expiration'] = calculate_token_expiration().isoformat()
 
     if token:
         user_data = get_user_json_data(token)
@@ -213,108 +250,22 @@ def render_homepage():
 
     return render_template('homepage.html', display_name=display_name)
 
-async def fetch(session, url, headers, params=None, max_retries=3):
-    for attempt in range(max_retries):
-        async with session.get(url, headers=headers, params=params, ssl=SSL_CONTEXT) as response:
-            if response.status == 200:
-                return await response.json()
-            elif response.status == 429:
-                retry_after = int(response.headers.get("Retry-After", 1))
-                logging.warning(f"Rate limited. Retrying after {retry_after} seconds (Attempt {attempt+1}/{max_retries})")
-                await asyncio.sleep(retry_after)
-            else:
-                logging.error(f"Request failed with status {response.status}: {await response.text()}")
-                return None
-            await asyncio.sleep(2 ** attempt)  # Exponential backoff
-    logging.error(f"Max retries reached for {url}")
-    return None
-
-async def get_user_tracks(token, limit=50, offset=0):
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    all_tracks = []
-    async with ClientSession() as session:
-        while True:
-            url = 'https://api.spotify.com/v1/me/tracks'
-            params = {'limit': limit, 'offset': offset}
-            response_json = await fetch(session, url, headers, params)
-            if not response_json:
-                break
-            all_tracks.extend(response_json.get('items', []))
-            if len(response_json.get('items', [])) < limit:
-                break
-            offset += limit
-            await asyncio.sleep(0.5)
-    return all_tracks
-
-async def get_track_features(track_id, token, session, max_retries=3):
-    headers = {
-        'Authorization': f'Bearer {token}'
-    }
-    url = f'https://api.spotify.com/v1/audio-features/{track_id}'
-    for attempt in range(max_retries):
-        async with session.get(url, headers=headers, ssl=SSL_CONTEXT) as response:
-            if response.status == 429:
-                retry_after = int(response.headers.get("Retry-After", 1))
-                logging.warning(f"Rate limited by Spotify API. Retrying after {retry_after} seconds (Attempt {attempt + 1}/{max_retries}).")
-                await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                continue
-            elif response.status == 401:
-                logging.error("Unauthorized access - token may be expired.")
-                return None
-            elif response.status != 200:
-                logging.error(f"Failed to fetch track features, status code: {response.status}")
-                return None
-            return await response.json()
-    logging.error(f"Failed to fetch track features for track {track_id} after multiple retries.")
-    return None
-
-async def get_artist_details(artist_id, token, session):
-    url = f"https://api.spotify.com/v1/artists/{artist_id}"
-    headers = {"Authorization": f"Bearer {token}"}
-    return await fetch(session, url, headers)
-
-async def construct_tracks_json(token):
-    all_tracks = []
-    user_tracks = await get_user_tracks(token)
-    if not user_tracks:
-        return []
-    async with ClientSession() as session:
-        for item in user_tracks:
-            track = item['track']
-            track_id = track['id']
-            track_name = track['name']
-            album = track['album']['name']
-            artist = track['artists'][0]['name']
-            popularity = track.get('popularity')
-            features = await get_track_features(track_id, token, session)
-            if features:
-                track_info = {
-                    "name": track_name,
-                    "album": album,
-                    "artist": artist,
-                    "popularity": popularity,
-                    "acousticness": features.get('acousticness'),
-                    "danceability": features.get('danceability'),
-                    "energy": features.get('energy'),
-                    "instrumentalness": features.get('instrumentalness'),
-                    "liveness": features.get('liveness'),
-                    "loudness": features.get('loudness'),
-                    "speechiness": features.get('speechiness'),
-                    "tempo": features.get('tempo'),
-                    "valence": features.get('valence'),
-                }
-                all_tracks.append(track_info)
-    return all_tracks
-
 @app.route("/gettracks", methods=['GET'])
-async def get_tracks():
-    token = session.get('token')  # Get token from session
-    if not token or token_expired():
-        token = refresh_token()
-    tracks = await construct_tracks_json(token)
-    return jsonify(tracks)
+def get_tracks():
+    print("Entered gettracks")
+    token_info = session.get('token')
+    if not token_info or token_expired():
+        return redirect(url_for('login'))
 
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5002, debug=True)
+    sp = Spotify(auth=token_info)
+
+    # Run the asynchronous function using asyncio.run
+    tracks_json = asyncio.run(construct_tracks_json(sp))
+    
+    if tracks_json:
+        return jsonify(tracks_json)
+    else:
+        return jsonify({"error": "Unable to fetch tracks"})
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5002)

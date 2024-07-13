@@ -13,7 +13,7 @@ client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 
 token = None
-
+ 
 def set_token(new_token):
     global token
     token = new_token
