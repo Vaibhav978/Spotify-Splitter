@@ -9,8 +9,7 @@ from spotipy.oauth2 import SpotifyOAuth
 import asyncio
 import time
 from spotify import *
-import spotipy 
-import logging
+import spotipy  
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -119,80 +118,66 @@ async def construct_tracks_json(sp):
     print("Entered construct tracks")
     all_tracks = []
     count = 1
-    offset = 0
-    limit = 50  # Number of tracks to fetch per batch
-
-    user_tracks = sp.current_user_saved_tracks(limit = limit, offset = offset)
-    while user_tracks['items']:
+    user_tracks = sp.current_user_saved_tracks()
+    while user_tracks:
         track_ids = [item['track']['id'] for item in user_tracks['items']]
-        features_batch = get_audio_features_with_retry(sp, track_ids)
+        batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
+        
+        for batch in batched_track_ids:
+            features = await get_audio_features_with_retry(sp, batch)
+            for i, item in enumerate(user_tracks['items']):
+                track = item['track']
+                track_name = track['name']
+                album = track['album']['name']
+                artist = track['artists'][0]['name']
+                popularity = track.get('popularity')
+                feature = features[i]
+                if feature:
+                    track_info = {
+                        "name": track_name,
+                        "album": album,
+                        "artist": artist,
+                        "popularity": popularity,
+                        "acousticness": feature.get('acousticness'),
+                        "danceability": feature.get('danceability'),
+                        "energy": feature.get('energy'),
+                        "instrumentalness": feature.get('instrumentalness'),
+                        "liveness": feature.get('liveness'),
+                        "loudness": feature.get('loudness'),
+                        "speechiness": feature.get('speechiness'),
+                        "tempo": feature.get('tempo'),
+                        "valence": feature.get('valence'),
+                    }
+                    print(f"Track {count}: {track_info['name']} - Danceability: {track_info['danceability']}")
 
-        for track_id, features in zip(track_ids, features_batch):
-            track = next((item['track'] for item in user_tracks['items'] if item['track']['id'] == track_id), None)
-            if not track:
-                continue
-            
-            track_name = track['name']
-            album = track['album']['name']
-            artist = track['artists'][0]['name']
-            popularity = track.get('popularity')
-
-            if features:
-                track_info = {
-                    "name": track_name,
-                    "album": album,
-                    "artist": artist,
-                    "popularity": popularity,
-                    "acousticness": features.get('acousticness'),
-                    "danceability": features.get('danceability'),
-                    "energy": features.get('energy'),
-                    "instrumentalness": features.get('instrumentalness'),
-                    "liveness": features.get('liveness'),
-                    "loudness": features.get('loudness'),
-                    "speechiness": features.get('speechiness'),
-                    "tempo": features.get('tempo'),
-                    "valence": features.get('valence'),
-                }
-                count += 1
-                all_tracks.append(track_info)
-
-        offset += limit
-        user_tracks = sp.current_user_saved_tracks(limit=limit, offset=offset)
-
-        await asyncio.sleep(0.2)  # Small delay to prevent overwhelming the API
-
+                    count += 1
+                    all_tracks.append(track_info)
+        if user_tracks['next']:
+            user_tracks = sp.next(user_tracks)
+        else:
+            break
     return all_tracks
-def get_audio_features_with_retry(sp, track_ids):  # Takes a list of track IDs
-    retries = 3
-    for attempt in range(retries):
+
+
+async def get_genres_with_retry(sp, artist_ids, retries=5, backoff_factor=2):
+    genres = set()
+    for i in range(retries):
         try:
-            features = spotify_api_request(sp.audio_features, tracks=track_ids)
-            if features:
-                return features 
-            else:
-                return [None] * len(track_ids)  # Return None for each track if features not available
-        except spotipy.SpotifyException as e:
+            for batch in [artist_ids[i:i + 50] for i in range(0, len(artist_ids), 50)]:
+                artists = sp.artists(batch)['artists']
+                for artist in artists:
+                    genres.update(artist['genres'])
+            return genres
+        except spotipy.exceptions.SpotifyException as e:
             if e.http_status == 429:
-                retry_after = int(e.headers.get('Retry-After', 1))
-                logging.warning(f"Rate limited. Retrying after {retry_after} seconds (attempt {attempt + 1}/{retries})")
-                time.sleep(retry_after + 1)
+                retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
+                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
+                await asyncio.sleep(retry_after)
             else:
-                logging.error(f"Spotify API error: {e}")
-                raise
-def spotify_api_request(method, *args, **kwargs):
-    retries = 3  # Number of retries
-    for attempt in range(retries):
-        try:
-            result = method(*args, **kwargs)
-            return result
-        except spotipy.SpotifyException as e:
-            if e.http_status == 429:  # Rate limit error
-                retry_after = int(e.headers.get('Retry-After', 1))
-                logging.warning(f"Rate limited. Retrying after {retry_after} seconds (attempt {attempt + 1}/{retries})")
-                time.sleep(retry_after + 1)  # Add a bit of extra buffer
-            else:
-                logging.error(f"Spotify API error: {e}")
-                raise  # Re-raise the exception if it's not rate limiting
+                raise e
+    print(f"Failed to retrieve genres for artists {artist_ids} after {retries} retries")
+    return genres
+
 @app.route("/")
 def renderWebsite():
     return render_template('index.html')
@@ -278,20 +263,24 @@ def render_homepage():
 
 @app.route("/gettracks", methods=['GET'])
 def get_tracks():
-    print("Entered gettracks")
-    token_info = session.get('token')
-    if not token_info or token_expired():
-        return redirect(url_for('login'))
+    print("Entered get_tracks")
+    code = request.args.get("code")
+    token = session.get('token')
 
-    sp = Spotify(auth=token_info)
+    if code and (not token or token_expired()):
+        token = get_token(code)
+        session['token'] = token
 
-    # Run the asynchronous function using asyncio.run
-    tracks_json = asyncio.run(construct_tracks_json(sp))
-    
-    if tracks_json:
-        return jsonify(tracks_json)
+    if token:
+        user_data = get_user_json_data(token)
+        sp = Spotify(auth=token)
+        all_tracks = asyncio.run(construct_tracks_json(sp))
+        if all_tracks:
+            return jsonify(all_tracks)
+        else:
+            return jsonify({"error": "No tracks found"})
     else:
-        return jsonify({"error": "Unable to fetch tracks"})
+        return jsonify({"error": "No token available or token expired"})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5002)
+    app.run(port=5002)
