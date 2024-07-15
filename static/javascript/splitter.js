@@ -24,8 +24,8 @@ function displayTracks(tracks) {
         trackElement.className = 'track';
 
         const trackName = document.createElement('h3');
-        trackName.textContent = track.track_name;
-
+        trackName.textContent = track.name;
+        
         const artistNames = document.createElement('p');
         artistNames.textContent = 'Artists: ' + track.artists.join(', ');
 

@@ -119,9 +119,20 @@ async def construct_tracks_json(sp):
     all_tracks = []
     count = 1
     user_tracks = sp.current_user_saved_tracks()
+    artists_found = set()
+
     while user_tracks:
         track_ids = [item['track']['id'] for item in user_tracks['items']]
         batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
+        
+        # Collect all artist IDs
+        for item in user_tracks['items']:
+            track = item['track']
+            artist_ids = [artist['id'] for artist in track['artists']]
+            artists_found.update(artist_ids)
+
+        # Fetch genres for all unique artist IDs
+        artist_genres_dict = await get_genres_with_retry(sp, list(artists_found))
         
         for batch in batched_track_ids:
             features = await get_audio_features_with_retry(sp, batch)
@@ -129,14 +140,21 @@ async def construct_tracks_json(sp):
                 track = item['track']
                 track_name = track['name']
                 album = track['album']['name']
-                artist = track['artists'][0]['name']
+                artists = [artist['name'] for artist in track['artists']]
+                artist_ids = [artist['id'] for artist in track['artists']]
+                
+                # Collect genres for the track from artist_genres_dict
+                genres = set()
+                for artist_id in artist_ids:
+                    genres.update(artist_genres_dict.get(artist_id, []))
+                
                 popularity = track.get('popularity')
                 feature = features[i]
                 if feature:
                     track_info = {
                         "name": track_name,
                         "album": album,
-                        "artist": artist,
+                        "artists": artists,
                         "popularity": popularity,
                         "acousticness": feature.get('acousticness'),
                         "danceability": feature.get('danceability'),
@@ -147,9 +165,10 @@ async def construct_tracks_json(sp):
                         "speechiness": feature.get('speechiness'),
                         "tempo": feature.get('tempo'),
                         "valence": feature.get('valence'),
+                        "genres": list(genres),  # Convert set to list for JSON serialization
                     }
-                    print(f"Track {count}: {track_info['name']} - Danceability: {track_info['danceability']}")
-
+                    print(f"Track {count}: {track_info['name']} - Genres: {track_info['genres']}")
+                    
                     count += 1
                     all_tracks.append(track_info)
         if user_tracks['next']:
@@ -158,16 +177,31 @@ async def construct_tracks_json(sp):
             break
     return all_tracks
 
+async def get_audio_features_with_retry(sp, track_ids, retries=5, backoff_factor=2):
+    for i in range(retries):
+        try:
+            features = sp.audio_features(track_ids)
+            return features
+        except spotipy.exceptions.SpotifyException as e:
+            if e.http_status == 429:
+                retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
+                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
+                await asyncio.sleep(retry_after)
+            else:
+                raise e
+    print(f"Failed to retrieve audio features for tracks {track_ids} after {retries} retries")
+    return [None] * len(track_ids)
+
 
 async def get_genres_with_retry(sp, artist_ids, retries=5, backoff_factor=2):
-    genres = set()
+    genres_dict = {}
     for i in range(retries):
         try:
             for batch in [artist_ids[i:i + 50] for i in range(0, len(artist_ids), 50)]:
                 artists = sp.artists(batch)['artists']
                 for artist in artists:
-                    genres.update(artist['genres'])
-            return genres
+                    genres_dict[artist['id']] = artist.get('genres', [])
+            return genres_dict
         except spotipy.exceptions.SpotifyException as e:
             if e.http_status == 429:
                 retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
@@ -176,7 +210,7 @@ async def get_genres_with_retry(sp, artist_ids, retries=5, backoff_factor=2):
             else:
                 raise e
     print(f"Failed to retrieve genres for artists {artist_ids} after {retries} retries")
-    return genres
+    return genres_dict
 
 @app.route("/")
 def renderWebsite():
