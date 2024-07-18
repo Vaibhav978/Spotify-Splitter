@@ -1,4 +1,11 @@
-console.log("splitter.js is loaded");
+
+var numDropdown = $('#num_albums');
+for (var i = 1; i <= 50; i++) {
+    numDropdown.append($('<option>', {
+        value: i,
+        text: i
+    }));
+}
 
 function submitAlbum() {
     console.log("Button clicked, fetching tracks...");

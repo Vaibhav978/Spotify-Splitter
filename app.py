@@ -10,6 +10,8 @@ import asyncio
 import time
 from spotify import *
 import spotipy  
+import pandas as pd
+from classification import *
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -153,9 +155,9 @@ async def construct_tracks_json(sp):
                 if feature:
                     track_info = {
                         "name": track_name,
+                        "id": artist_id,
                         "album": album,
                         "artists": artists,
-                        "popularity": popularity,
                         "acousticness": feature.get('acousticness'),
                         "danceability": feature.get('danceability'),
                         "energy": feature.get('energy'),
@@ -306,15 +308,30 @@ def get_tracks():
         session['token'] = token
 
     if token:
-        user_data = get_user_json_data(token)
         sp = Spotify(auth=token)
         all_tracks = asyncio.run(construct_tracks_json(sp))
         if all_tracks:
+            df = pd.DataFrame(all_tracks)
+            df.to_csv('tracks.csv',  index = False)
             return jsonify(all_tracks)
+        
         else:
             return jsonify({"error": "No tracks found"})
     else:
         return jsonify({"error": "No token available or token expired"})
 
+@app.route("/splittracks")
+def split_tracks():
+        print("Entered get_tracks")
+        code = request.args.get("code")
+        token = session.get('token')
+
+        if code and (not token or token_expired()):
+            token = get_token(code)
+            session['token'] = token
+        if token:
+            classified_playlists = cluster_tracks_with_visualization()
+            data = request.json()
+    
 if __name__ == '__main__':
     app.run(port=5002)

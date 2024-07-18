@@ -16,9 +16,7 @@
             <label for="artist_name">Artist Name:</label>
             <input type="text" id="artist_name" maxlength="50" name="artist_name" required>
             <label for="album_count">Number of Albums:</label>
-            <select id="num_albums">
-                <!-- Options will be populated by JavaScript -->
-            </select>          
+            <select id="num_albums"> </select>          
             <input type="submit" value="Search">
         </form>
 
@@ -27,5 +25,13 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='javascript/searchArtist.js') }}"></script>
+    <script>const numAlbumsSelect = document.getElementById("num_albums");
+
+        for (let i = 1; i <= 50; i++) {
+          const option = document.createElement("option");
+          option.value = i;
+          option.text = i;
+          numAlbumsSelect.add(option);
+        }</script>
 </body>
 </html>
