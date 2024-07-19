@@ -22,23 +22,47 @@ function submitAlbum() {
         .catch(error => console.error('Error fetching tracks:', error));
 }
 
+
 function displayTracks(tracks) {
     const container = document.getElementById('tracks-container');
     container.innerHTML = '';  // Clear existing content
 
-    tracks.forEach(track => {
-        const trackElement = document.createElement('div');
-        trackElement.className = 'track';
+    const header = document.createElement('h3');
+    header.textContent = `Obtained ${tracks.length} saved tracks`;
+    container.appendChild(header);
 
-        const trackName = document.createElement('h3');
-        trackName.textContent = track.name;
-        
-        const artistNames = document.createElement('p');
-        artistNames.textContent = 'Artists: ' + track.artists.join(', ');
+    const tracksPerColumn = 200;
+    const numColumns = Math.ceil(tracks.length / tracksPerColumn);
 
-        trackElement.appendChild(trackName);
-        trackElement.appendChild(artistNames);
+    const columnsContainer = document.createElement('div');
+    columnsContainer.className = 'columns-container';
 
-        container.appendChild(trackElement);
-    });
+    for (let i = 0; i < numColumns; i++) {
+        const columnElement = document.createElement('div');
+        columnElement.className = 'track-column';
+
+        const start = i * tracksPerColumn;
+        const end = Math.min(start + tracksPerColumn, tracks.length);
+
+        for (let j = start; j < end; j++) {
+            const track = tracks[j];
+            const trackElement = document.createElement('div');
+            trackElement.className = 'track';
+
+            const trackIndex = document.createElement('span');
+            trackIndex.className = 'track-index';
+            //trackIndex.textContent = `${j + 1}. `; // Display index starting from 1
+
+            const trackInfo = document.createElement('p');
+            trackInfo.textContent = ` ${j + 1}. ${track.name} - ${track.artists.join(', ')}`;
+
+            //trackElement.appendChild(trackIndex);
+            trackElement.appendChild(trackInfo);
+            columnElement.appendChild(trackElement);
+        }
+
+        columnsContainer.appendChild(columnElement);
+    }
+
+    container.appendChild(columnsContainer);
 }

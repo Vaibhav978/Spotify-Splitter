@@ -109,3 +109,18 @@ button:hover,
     margin-top: 50px;
     margin-bottom: 30px;
 }
+.columns-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.track-column {
+    flex: 1;
+    min-width: 200px; /* Adjust as necessary */
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.track {
+    margin-bottom: 10px;
+}
