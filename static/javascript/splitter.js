@@ -3,7 +3,7 @@ const hasReceivedTracks = false
 $(document).ready(function() {
     $('#homeButtonSplitter').css('opacity', 0).fadeTo(1000, 1); // Fade in over 1 second
     $('#updateTracksButton').css('opacity', 0).fadeTo(1000, 1);
-    $('#fetchTracksButton').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in\
+    $('#fetchTracksButton').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in
     
     const numDropdown = $('#num_albums');
     for (let i = 1; i <= 50; i++) {
@@ -13,7 +13,6 @@ $(document).ready(function() {
         }));
     }
     $('#fadeButton, #num_albums').prop('disabled', true);
-
 });
 
 function submitAlbum() {
@@ -31,23 +30,36 @@ function submitAlbum() {
         .catch(error => console.error('Error fetching tracks:', error));
 }
 
-function updateTracks(){
+function updateTracks() {
+    const container = document.getElementById('tracks_container');
+    container.innerHTML = '';  // Clear existing content
+
+    // Make the fadeButton, num_albums, and tracks_container invisible and disable them
+    hideElementsWhenGettingInformation()
+
     fetch('/updatetracks')
         .then(response => {
+            console.log(response.json)
             return response.json();
         })
         .then(data => {
-            displayTracks(data)
+            console.log(data)
+            displayTracks(data);
         })
         .catch(error => console.error('Error fetching tracks:', error));
-    
 }
 
 function getSplitPlaylists() {
     fetch('/splittracks')
 }
 
+function hideElementsWhenGettingInformation(){
+    $('#fadeButton, #num_albums, #tracks_container').css('opacity',0).fadeTo(0,0);
+    $('#fadeButton, #num_albums').prop('disabled', true);
+}
+
 function displayTracks(data) {
+    console.log(data)
     const tracks = data.tracks
     
     const container = document.getElementById('tracks_container');

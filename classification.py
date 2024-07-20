@@ -44,7 +44,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     # One-hot encode genres
     mlb = MultiLabelBinarizer()
     genres_encoded = mlb.fit_transform(df['genres'])
-    genres_encoded *= 1.2  # Adjust the weight of genre features if needed
+    genres_encoded *= 1.25  # Adjust the weight of genre features if needed
 
     # Combine normalized features with one-hot encoded genres
     X_combined = np.hstack((X_scaled, genres_encoded))

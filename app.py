@@ -13,6 +13,8 @@ import spotipy
 import pandas as pd
 from classification import *
 from pymongo import MongoClient
+import subprocess
+import signal
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -335,9 +337,10 @@ def get_tracks():
                     "spotify_id": spotify_id,
                     "tracks": all_tracks
                 }
+                user_entry.pop('_id',None)
                 # Insert the new user entry into the database
                 users_collection.insert_one(user_entry)
-                return jsonify(all_tracks)
+                return jsonify(user_entry)
         
             else:
                 return jsonify({"error": "No tracks found"})
@@ -351,12 +354,12 @@ def user_exists_in_database(spotify_id):
 def get_user_data(spotify_id):
     user = users_collection.find_one({"spotify_id": spotify_id})
     if user:
-        user.pop('_id')  # Remove the MongoDB ObjectId as it is not JSON serializable
-        #print(user)
+        user.pop('_id', None)  # Remove the MongoDB ObjectId
     return user
 
-@app.route('/updatetracks', methods = ['GET'])
+@app.route("/updatetracks", methods=['GET'])
 def update_tracks():
+    print("Entered update_tracks")
     code = request.args.get("code")
     token = session.get('token')
     spotify_id = session.get('spotify_id')
@@ -364,27 +367,45 @@ def update_tracks():
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
+
     if token:
-        delete_user_by_spotify_id_from_database(spotify_id)
+        if user_exists_in_database(spotify_id):
+            delete_user_by_spotify_id_from_database(spotify_id)
+        
         sp = Spotify(auth=token)
         all_tracks = asyncio.run(construct_tracks_json(sp))
+        
         if all_tracks:
-                user_entry = {
-                    "spotify_id": spotify_id,
-                    "tracks": all_tracks
-                }
-                # Insert the new user entry into the database
-                users_collection.insert_one(user_entry)
-                return jsonify(all_tracks)
-        else: 
+            user_entry = {
+                "spotify_id": spotify_id,
+                "tracks": all_tracks
+            }
+            user_entry.pop('_id', None)
+
+            # Update or insert (upsert=True) the document
+            result = users_collection.update_one(
+                {"spotify_id": spotify_id},
+                {"$set": user_entry},
+                upsert=True
+            )
+
+            if result.upserted_id:
+                user_entry["_id"] = str(result.upserted_id)
+            else:
+                user_entry.pop("_id", None)
+            
+            return jsonify(user_entry)
+
+        else:
             return jsonify({"error": "No tracks found"})
+    
     else:
         return jsonify({"error": "No token available or token expired"})
+
+    
+    
 def delete_user_by_spotify_id_from_database(spotify_id):
     users_collection.delete_one({"spotify_id": spotify_id})
-
-
-
 
 
 @app.route("/splittracks")
@@ -402,5 +423,22 @@ def split_tracks():
             classified_playlists = cluster_tracks_with_visualization(spotify_id)
             data = request.json()
     
+def kill_process_on_port(port):
+    """Kills any processes running on the specified port."""
+    try:
+        result = subprocess.run(
+            ["lsof", "-i", f":{port}"], capture_output=True, text=True
+        )
+        lines = result.stdout.splitlines()
+        for line in lines[1:]:  # Skip the header line
+            pid = int(line.split()[1])
+            try:
+                os.kill(pid, signal.SIGKILL)
+                print(f"Killed process with PID {pid} on port {port}")
+            except ProcessLookupError:
+                pass  # Process may have already terminated
+    except subprocess.CalledProcessError:
+        print(f"No processes found on port {port}")
 if __name__ == '__main__':
+    kill_process_on_port(5002)
     app.run(port=5002)
