@@ -12,6 +12,7 @@ from spotify import *
 import spotipy  
 import pandas as pd
 from classification import *
+from pymongo import MongoClient
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -20,6 +21,12 @@ load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 scope = "user-library-read user-read-private user-read-email"
+
+# MongoDB connection
+client = MongoClient('mongodb://localhost:27017/')
+db = client.spotify_db
+users_collection = db.users
+
 
 def create_spotify_oauth():
     return SpotifyOAuth(
@@ -235,6 +242,7 @@ def render_user_page():
 
     if token:
         user_data = get_user_json_data(token)
+        session['spotify_id'] = user_data.get('id')
         display_name = user_data.get('display_name', '')
         session['display_name'] = display_name
     else:
@@ -273,6 +281,7 @@ def render_splitter():
     if token:
         user_data = get_user_json_data(token)
         display_name = user_data.get('display_name', '')
+        session['spotify_id'] = user_data.get('id')
         session['display_name'] = display_name
     else:
         display_name = session.get('display_name', '')
@@ -290,6 +299,8 @@ def render_homepage():
 
     if token:
         user_data = get_user_json_data(token)
+        session['spotify_id'] = user_data.get('id')
+
         display_name = user_data.get('display_name', '')
         session['display_name'] = display_name
     else:
@@ -299,29 +310,87 @@ def render_homepage():
 
 @app.route("/gettracks", methods=['GET'])
 def get_tracks():
-    print("Entered get_tracks")
+    
     code = request.args.get("code")
     token = session.get('token')
+    spotify_id = session.get('spotify_id')
+    print('SPOTIFY ID:')
+    print(spotify_id)
+    print(user_exists_in_database(spotify_id))
 
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
 
     if token:
-        sp = Spotify(auth=token)
-        all_tracks = asyncio.run(construct_tracks_json(sp))
-        if all_tracks:
-            df = pd.DataFrame(all_tracks)
-            df.to_csv('tracks.csv',  index = False)
-            return jsonify(all_tracks)
-        
+        if user_exists_in_database(session['spotify_id']):
+            user_data = get_user_data(spotify_id)
+            print(user_data)           
+            return jsonify(user_data)
         else:
-            return jsonify({"error": "No tracks found"})
+            sp = Spotify(auth=token)
+            all_tracks = asyncio.run(construct_tracks_json(sp))
+            if all_tracks:
+                user_entry = {
+                    "spotify_id": spotify_id,
+                    "tracks": all_tracks
+                }
+                # Insert the new user entry into the database
+                users_collection.insert_one(user_entry)
+                return jsonify(all_tracks)
+        
+            else:
+                return jsonify({"error": "No tracks found"})
     else:
         return jsonify({"error": "No token available or token expired"})
 
+def user_exists_in_database(spotify_id):
+    user = users_collection.find_one({"spotify_id": spotify_id})
+    return user is not None
+
+def get_user_data(spotify_id):
+    user = users_collection.find_one({"spotify_id": spotify_id})
+    if user:
+        user.pop('_id')  # Remove the MongoDB ObjectId as it is not JSON serializable
+        #print(user)
+    return user
+
+@app.route('/updatetracks', methods = ['GET'])
+def update_tracks():
+    code = request.args.get("code")
+    token = session.get('token')
+    spotify_id = session.get('spotify_id')
+
+    if code and (not token or token_expired()):
+        token = get_token(code)
+        session['token'] = token
+    if token:
+        delete_user_by_spotify_id_from_database(spotify_id)
+        sp = Spotify(auth=token)
+        all_tracks = asyncio.run(construct_tracks_json(sp))
+        if all_tracks:
+                user_entry = {
+                    "spotify_id": spotify_id,
+                    "tracks": all_tracks
+                }
+                # Insert the new user entry into the database
+                users_collection.insert_one(user_entry)
+                return jsonify(all_tracks)
+        else: 
+            return jsonify({"error": "No tracks found"})
+    else:
+        return jsonify({"error": "No token available or token expired"})
+def delete_user_by_spotify_id_from_database(spotify_id):
+    users_collection.delete_one({"spotify_id": spotify_id})
+
+
+
+
+
 @app.route("/splittracks")
 def split_tracks():
+        spotify_id = session.get('spotify_id')
+
         print("Entered get_tracks")
         code = request.args.get("code")
         token = session.get('token')
@@ -330,7 +399,7 @@ def split_tracks():
             token = get_token(code)
             session['token'] = token
         if token:
-            classified_playlists = cluster_tracks_with_visualization()
+            classified_playlists = cluster_tracks_with_visualization(spotify_id)
             data = request.json()
     
 if __name__ == '__main__':

@@ -1,11 +1,20 @@
+console.log("splitter.js is loaded");
+const hasReceivedTracks = false
+$(document).ready(function() {
+    $('#homeButtonSplitter').css('opacity', 0).fadeTo(1000, 1); // Fade in over 1 second
+    $('#updateTracksButton').css('opacity', 0).fadeTo(1000, 1);
+    $('#fetchTracksButton').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in\
+    
+    const numDropdown = $('#num_albums');
+    for (let i = 1; i <= 50; i++) {
+        numDropdown.append($('<option>', {
+            value: i,
+            text: i
+        }));
+    }
+    $('#fadeButton, #num_albums').prop('disabled', true);
 
-var numDropdown = $('#num_albums');
-for (var i = 1; i <= 50; i++) {
-    numDropdown.append($('<option>', {
-        value: i,
-        text: i
-    }));
-}
+});
 
 function submitAlbum() {
     console.log("Button clicked, fetching tracks...");
@@ -22,9 +31,26 @@ function submitAlbum() {
         .catch(error => console.error('Error fetching tracks:', error));
 }
 
+function updateTracks(){
+    fetch('/updatetracks')
+        .then(response => {
+            return response.json();
+        })
+        .then(data => {
+            displayTracks(data)
+        })
+        .catch(error => console.error('Error fetching tracks:', error));
+    
+}
 
-function displayTracks(tracks) {
-    const container = document.getElementById('tracks-container');
+function getSplitPlaylists() {
+    fetch('/splittracks')
+}
+
+function displayTracks(data) {
+    const tracks = data.tracks
+    
+    const container = document.getElementById('tracks_container');
     container.innerHTML = '';  // Clear existing content
 
     const header = document.createElement('h3');
@@ -51,12 +77,11 @@ function displayTracks(tracks) {
 
             const trackIndex = document.createElement('span');
             trackIndex.className = 'track-index';
-            //trackIndex.textContent = `${j + 1}. `; // Display index starting from 1
+            trackIndex.textContent = `${j + 1}. `; // Display index starting from 1
 
             const trackInfo = document.createElement('p');
-            trackInfo.textContent = ` ${j + 1}. ${track.name} - ${track.artists.join(', ')}`;
+            trackInfo.textContent = `${j + 1}. ${track.name} - ${track.artists.join(', ')}`;
 
-            //trackElement.appendChild(trackIndex);
             trackElement.appendChild(trackInfo);
             columnElement.appendChild(trackElement);
         }
@@ -65,4 +90,8 @@ function displayTracks(tracks) {
     }
 
     container.appendChild(columnsContainer);
+    $('#fadeButton').css('opacity', 0).fadeTo(1000, 1); // Fade in over 1 second
+    $('#num_albums').css('opacity', 0).fadeTo(1000, 1);
+    $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in\
+    $('#fadeButton, #num_albums').prop('disabled', false);
 }

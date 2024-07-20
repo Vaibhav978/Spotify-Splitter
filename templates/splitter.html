@@ -5,23 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Album Splitter</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div class="header">
         <h1>Spotify Album Splitter</h1>
-        <a href="http://127.0.0.1:5002/homepage" class="btn back-btn">Back to Home</a>
+        <a href="http://127.0.0.1:5002/homepage" id = "homeButtonSplitter" class="btn back-btn">Back to Home</a>
     </div>
     <div>
-        <button class="btn" onclick="submitAlbum()">Get Tracks</button>
-        <button class = "btn" onclick = "displayPlaylist()"> Split Tracks into PlayLists</button>
-        <select id="num_albums"> </select>          
-
+        <button class="btn" id="fetchTracksButton" onclick="submitAlbum()">Get Tracks</button>
+        <button class = "btn" id = "updateTracksButton" onclick = "updateTracks()"> Update Your Tracks in The Database.</button>
+        <button class="btn" id="fadeButton" onclick="displayPlaylist()">Split Tracks into Playlists</button>
+        <select id="num_albums"></select>
     </div>
-    <div id="tracks-container">
+    <div id="tracks_container">
         <!-- Tracks will be displayed here -->
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='javascript/splitter.js') }}"></script>
 </body>
 </html>

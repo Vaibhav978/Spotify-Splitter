@@ -4,10 +4,27 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
 from sklearn.decomposition import PCA
 import json
+from pymongo import MongoClient
 
-def cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks_with_clusters.csv', num_clusters=10):
-    # Load track data from CSV file
-    df = pd.read_csv(input_csv)
+# MongoDB connection
+client = MongoClient('mongodb://localhost:27017/')
+db = client.spotify_db
+users_collection = db.users
+
+def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_clusters.csv', num_clusters=10):
+    # Fetch track data from MongoDB using Spotify ID
+    user_data = users_collection.find_one({"spotify_id": spotify_id})
+    if not user_data:
+        print("User not found in the database.")
+        return None
+
+    all_tracks = user_data.get('tracks')
+    if not all_tracks:
+        print("No tracks found for the user.")
+        return None
+
+    # Convert track data to DataFrame
+    df = pd.DataFrame(all_tracks)
     print(df.columns)
 
     # Select features for clustering
@@ -26,8 +43,9 @@ def cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks
 
     # One-hot encode genres
     mlb = MultiLabelBinarizer()
-    genres_encoded = mlb.fit_transform(df['genres'].apply(eval))
-    genres_encoded * 1.2
+    genres_encoded = mlb.fit_transform(df['genres'])
+    genres_encoded *= 1.2  # Adjust the weight of genre features if needed
+
     # Combine normalized features with one-hot encoded genres
     X_combined = np.hstack((X_scaled, genres_encoded))
 
@@ -42,7 +60,6 @@ def cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks
     # Get cluster labels and add them to the DataFrame
     df['cluster_label'] = kmeans.labels_
 
-
     # Count number of tracks in each cluster
     cluster_counts = df['cluster_label'].value_counts().sort_index()
 
@@ -56,7 +73,7 @@ def cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks
     print(df)
 
     # Save the DataFrame with cluster labels back to CSV
-    df_sorted = df.sort_values(by = 'cluster_label', ascending= True)
+    df_sorted = df.sort_values(by='cluster_label', ascending=True)
     df_sorted.to_csv(output_csv, index=False)
 
     # Create a dictionary to store clusters
@@ -73,4 +90,7 @@ def cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks
     return clusters_json
 
 # Example usage:
-clusters_json = cluster_tracks_with_visualization(input_csv='tracks.csv', output_csv='tracks_with_clusters.csv', num_clusters=10)
+spotify_id = "your_spotify_id_here"  # Replace with the actual Spotify ID
+clusters_json = cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_clusters.csv', num_clusters=10)
+if clusters_json:
+    print(clusters_json)

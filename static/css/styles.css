@@ -124,3 +124,25 @@ button:hover,
 .track {
     margin-bottom: 10px;
 }
+
+#fadeButton {
+    opacity: 0;
+}
+
+#num_albums {
+    opacity: 0;
+}
+
+#tracks_container {
+    opacity: 0;
+}
+
+#fetchTracksButton{
+    opacity: 0;
+}
+#homeButtonSplitter{
+    opacity: 0;
+}
+#updateTracksButton{
+    opacity: 0;
+}
