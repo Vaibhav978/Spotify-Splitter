@@ -8,30 +8,22 @@
 </head>
 <body>
     <div class="container">
-        <h1>Welcome {{ display_name }}!</h1>
-        <p>Enter an Artist Name to get their most popular albums</p>
-        <a href="http://127.0.0.1:5002/homepage" class="btn back-btn">Back to Home</a>
+        <h1 id="displayName" class="hidden">Welcome {{ display_name }}!</h1>
+        <p id="instructions" class="hidden">Enter an Artist Name to get their most popular albums</p>
+        <a href="http://127.0.0.1:5002/homepage" id="homeButton" class="btn back-btn hidden">Back to Home</a>
 
         <form id="searchArtist">
-            <label for="artist_name">Artist Name:</label>
-            <input type="text" id="artist_name" maxlength="50" name="artist_name" required>
-            <label for="album_count">Number of Albums:</label>
-            <select id="num_albums"> </select>          
-            <input type="submit" value="Search">
+            <label for="artist_name" id="artistLabel" class="hidden">Artist Name:</label>
+            <input type="text" id="artist_name" class="hidden" maxlength="50" name="artist_name" required>
+            <label for="album_count" id="albumCountLabel" class="hidden"> Number of Albums:</label>
+            <select id="num_albums" class="hidden"></select>          
+            <input type="submit" id="submitButton" class="hidden" value="Search">
         </form>
 
-        <div id="searchResults"></div>
+        <div id="searchResults" class = "hidden"></div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{{ url_for('static', filename='javascript/searchArtist.js') }}"></script>
-    <script>const numAlbumsSelect = document.getElementById("num_albums");
-
-        for (let i = 1; i <= 50; i++) {
-          const option = document.createElement("option");
-          option.value = i;
-          option.text = i;
-          numAlbumsSelect.add(option);
-        }</script>
 </body>
 </html>

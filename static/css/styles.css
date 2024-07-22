@@ -146,3 +146,16 @@ button:hover,
 #updateTracksButton{
     opacity: 0;
 }
+button:disabled {
+    cursor: not-allowed;
+}
+.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease, visibility 1s ease;
+}
+
+.fade-in {
+    opacity: 1 !important;
+    visibility: visible !important;
+}

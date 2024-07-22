@@ -101,7 +101,6 @@ def get_token(code):
 
     response = requests.post(url, headers=headers, data=data)
     json_result = response.json()
-    print(json_result)
     token = json_result.get("access_token")
     refresh = json_result.get("refresh_token")
     session['token'] = token
@@ -312,14 +311,9 @@ def render_homepage():
 
 @app.route("/gettracks", methods=['GET'])
 def get_tracks():
-    
     code = request.args.get("code")
     token = session.get('token')
     spotify_id = session.get('spotify_id')
-    print('SPOTIFY ID:')
-    print(spotify_id)
-    print(user_exists_in_database(spotify_id))
-
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
@@ -327,7 +321,6 @@ def get_tracks():
     if token:
         if user_exists_in_database(session['spotify_id']):
             user_data = get_user_data(spotify_id)
-            print(user_data)           
             return jsonify(user_data)
         else:
             sp = Spotify(auth=token)
@@ -408,11 +401,11 @@ def delete_user_by_spotify_id_from_database(spotify_id):
     users_collection.delete_one({"spotify_id": spotify_id})
 
 
-@app.route("/splittracks")
+@app.route("/splittracks", methods = ['GET'])
 def split_tracks():
         spotify_id = session.get('spotify_id')
 
-        print("Entered get_tracks")
+        print("Entered split tracks")
         code = request.args.get("code")
         token = session.get('token')
 
@@ -420,8 +413,8 @@ def split_tracks():
             token = get_token(code)
             session['token'] = token
         if token:
-            classified_playlists = cluster_tracks_with_visualization(spotify_id)
-            data = request.json()
+            classified_playlists = cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+            return classified_playlists
     
 def kill_process_on_port(port):
     """Kills any processes running on the specified port."""

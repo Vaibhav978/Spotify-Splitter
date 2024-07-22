@@ -8,6 +8,18 @@ $(document).ready(function() {
         }));
     }
 
+    // Fade in elements with delay
+    setTimeout(function() {
+        $('#displayName').addClass('fade-in');
+        $('#instructions').addClass('fade-in');
+        $('#homeButton').addClass('fade-in');
+        $('#artistLabel').addClass('fade-in');
+        $('#artist_name').addClass('fade-in');
+        $('#albumCountLabel').addClass('fade-in');
+        $('#num_albums').addClass('fade-in');
+        $('#submitButton').addClass('fade-in');
+    }, 100);
+
     // Handle form submission asynchronously
     $('#searchArtist').submit(function(event) {
         event.preventDefault();  // Prevent default form submission
@@ -33,11 +45,12 @@ $(document).ready(function() {
 function displayAlbums(albums, artist_name, num_albums) {
     var searchResults = $('#searchResults');
     searchResults.empty();  // Clear previous results
-    var heading = $('<h2>').text('Top ' + num_albums + ' Albums by ' + artist_name); // Fix typo here
+    var heading = $('<h2>').text('Top ' + num_albums + ' Albums by ' + artist_name);
     searchResults.append(heading);
     albums.forEach(function(album, index) {
         var albumElement = $('<div>').addClass('album').text((index + 1) + '. ' + album.name);
         searchResults.append(albumElement);
     });
-}
 
+    $('#searchResults').addClass('fade-in');
+}
