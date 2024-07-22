@@ -50,21 +50,19 @@ function updateTracks() {
         .catch(error => console.error('Error fetching tracks:', error));
 }
 
-function displayPlaylists(data) { // Ensure this function name is correct
+function displayPlaylists(playlists) {
     console.log("DATA");
-    console.log(data)
+    console.log(playlists);
     const container = document.getElementById('tracks_container');
-    hideElementsWhenGettingInformation()
+    hideElementsWhenGettingInformation();
 
     container.innerHTML = '';  // Clear existing content
 
-    const playlists = data;
-
     const columnsContainer = document.createElement('div');
     columnsContainer.className = 'columns-container';
-    console.log(Object.keys(playlists))
+    console.log(Object.keys(playlists));
     const clusterKeys = Object.keys(playlists);
-    const clustersPerRow = 4;
+    const clustersPerRow = 3;  // Set to 3 playlists per row
     let currentRow;
 
     clusterKeys.forEach((clusterKey, index) => {
@@ -108,6 +106,7 @@ function displayPlaylists(data) { // Ensure this function name is correct
 }
 
 
+
 function getSplitPlaylists() {
     fetch('/splittracks')
     .then(response => response.json())
@@ -123,8 +122,8 @@ function hideElementsWhenGettingInformation(){
 
 
 function displayTracks(data) {
-    console.log(data)
-    const tracks = data.tracks
+    console.log(data);
+    const tracks = data.tracks;
     
     const container = document.getElementById('tracks_container');
     container.innerHTML = '';  // Clear existing content
@@ -133,11 +132,12 @@ function displayTracks(data) {
     header.textContent = `Obtained ${tracks.length} saved tracks`;
     container.appendChild(header);
 
-    const tracksPerColumn = 200;
-    const numColumns = Math.ceil(tracks.length / tracksPerColumn);
-
     const columnsContainer = document.createElement('div');
     columnsContainer.className = 'columns-container';
+
+    // Set the number of columns to 3
+    const numColumns = 3;
+    const tracksPerColumn = Math.ceil(tracks.length / numColumns);
 
     for (let i = 0; i < numColumns; i++) {
         const columnElement = document.createElement('div');
@@ -150,10 +150,6 @@ function displayTracks(data) {
             const track = tracks[j];
             const trackElement = document.createElement('div');
             trackElement.className = 'track';
-
-            const trackIndex = document.createElement('span');
-            trackIndex.className = 'track-index';
-            trackIndex.textContent = `${j + 1}. `; // Display index starting from 1
 
             const trackInfo = document.createElement('p');
             trackInfo.textContent = `${j + 1}. ${track.name} - ${track.artists.join(', ')}`;
@@ -168,6 +164,7 @@ function displayTracks(data) {
     container.appendChild(columnsContainer);
     $('#fadeButton').css('opacity', 0).fadeTo(1000, 1); // Fade in over 1 second
     $('#num_albums').css('opacity', 0).fadeTo(1000, 1);
-    $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in\
+    $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in
     $('#fadeButton, #num_albums').prop('disabled', false);
 }
+

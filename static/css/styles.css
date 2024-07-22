@@ -92,16 +92,13 @@ button:hover,
     margin-bottom: 30px;
 }
 
-.columns-container {
-    display: flex;
-    flex-wrap: wrap;
-}
-
+/* Track Column Styling */
 .track-column {
     flex: 1;
     min-width: 200px; /* Adjust as necessary */
     padding: 10px;
     box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.1); /* Ensure column background matches overall style */
 }
 
 .track {
@@ -117,6 +114,80 @@ button:hover,
 .fade-in {
     opacity: 1 !important;
     visibility: visible !important;
+}
+
+/* Track Container Styling */
+#tracks_container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    overflow-y: auto;
+    max-height: 80vh; /* Adjust as needed */
+    padding: 10px;
+    border: 1px solid #ddd;
+    background-color: transparent; /* Make background transparent */
+    color: #fff; /* Ensure text color is visible */
+}
+
+/* Playlist Row Styling */
+.playlist-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Playlist Container Styling */
+.playlist-container {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 5px;
+    background-color: rgba(255, 255, 255, 0.1); /* Make background semi-transparent */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 0.8rem;
+}
+
+.playlist-container h4 {
+    margin: 0 0 5px;
+    font-size: 1rem;
+    color: white; /* Ensure text color is visible */
+}
+
+.playlist-container button {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    margin: 5px 0;
+    background-color: #1DB954; /* Green button */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.4s, transform 0.4s;
+}
+
+.playlist-container button:hover {
+    background-color: #1ed760; /* Darker Green */
+    transform: scale(1.05);
+}
+
+.track-dropdown {
+    width: 100%;
+    height: 100px;
+    overflow-y: scroll;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.1); /* Ensure dropdown background matches overall style */
+    color: white; /* Ensure text color is visible */
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+/* Columns Container Styling */
+.columns-container {
+    display: flex;
+    justify-content: space-between; /* Ensure even spacing between columns */
+    width: 100%; /* Ensure the container takes full width */
 }
 
 /* Animations */
