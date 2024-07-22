@@ -4,63 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to your external stylesheet -->
-    <style>
-        /* Additional styling for the homepage */
-        body {
-            background-color: black;
-            color: white;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        .header { 
-            margin-top: 50px;
-            margin-bottom: 30px;
-        }
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            font-size: 18px;
-            background-color: #1DB954;
-            color: white;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-            margin: 10px;
-            transition-duration: 0.4s;
-        }
-        .btn:hover {
-            background-color: #1ed760; /* Darker Green */
-        }
-    </style>
-    <script>
-        async function shutdownServer() {
-            const userIP = await fetch('https://api.ipify.org?format=json')
-                .then(response => response.json())
-                .then(data => data.ip);
-
-            if (userIP === '127.0.0.1') {
-                fetch('/shutdown', { method: 'POST' })
-                    .then(response => response.text())
-                    .then(data => {
-                        alert(data);
-                    });
-            } else {
-                alert('Shutdown request forbidden: not from localhost');
-            }
-        }
-    </script>
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"></head>
 <body>
-    <div class="header">
-        <h1>Welcome {{ display_name }}!</h1>
+    <div class="container">
+        <h1 id="displayName" class="hidden">Welcome {{display_name}}!</h1>
+        <p id="instructions" class="hidden">Enter an Artist Name to get their most popular albums</p>
+        <a href="http://127.0.0.1:5002/user" id="artistButton" class="btn hidden">Find Artists Top Albums</a>
+        <a href="http://127.0.0.1:5002/splitter" id="splitterButton" class="btn hidden">Spotify Splitter</a>
+        <button id="shutdownButton" class="btn hidden">Shutdown Server</button>
     </div>
-    <div>
-        <a href="http://127.0.0.1:5002/user" class="btn">Find Artists Top Albums</a>
-        <a href="http://127.0.0.1:5002/splitter" class="btn">Spotify Splitter</a>
-    </div>
+    <script>
+        window.addEventListener('DOMContentLoaded', (event) => {
+            document.querySelectorAll('.hidden').forEach(element => {
+                element.classList.add('fade-in');
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,18 +1,22 @@
 /* Global Styling */
 body {
-    font-family: Arial, sans-serif;
-    background-color: black;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to right, #000000, #434343);
     color: white;
     margin: 0;
     padding: 0;
     text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Container for centering content */
 .container {
     max-width: 600px;
-    margin: 100px auto;
     text-align: center;
+    animation: slide-in 1s ease-out forwards;
 }
 
 /* Logo Styling */
@@ -24,6 +28,8 @@ body {
 /* Description Styling */
 .description {
     margin-bottom: 30px;
+    font-size: 1.2em;
+    animation: fade-in 2s ease-in-out;
 }
 
 /* Input and Button Styling */
@@ -37,6 +43,10 @@ button,
     margin-bottom: 10px;
     border: none;
     border-radius: 5px;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: background 0.4s, transform 0.4s;
 }
 
 /* Button Styling */
@@ -50,36 +60,7 @@ button,
 button:hover,
 [type="submit"]:hover {
     background-color: #1ed760; /* Darker Green */
-}
-
-/* Dropdown Menu */
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: black;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-}
-
-.dropdown-content a {
-    color: white;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: block;
-}
-
-.dropdown-content a:hover {
-    background-color: #333;
-}
-
-.dropdown:hover .dropdown-content {
-    display: block;
+    transform: scale(1.05);
 }
 
 /* Specific Button Styling */
@@ -94,11 +75,12 @@ button:hover,
     cursor: pointer;
     border-radius: 5px;
     margin: 10px;
-    transition-duration: 0.4s;
+    transition: background-color 0.4s, transform 0.4s;
 }
 
 .btn:hover {
     background-color: #1ed760; /* Darker Green */
+    transform: scale(1.05);
 }
 
 .back-btn {
@@ -109,6 +91,7 @@ button:hover,
     margin-top: 50px;
     margin-bottom: 30px;
 }
+
 .columns-container {
     display: flex;
     flex-wrap: wrap;
@@ -125,30 +108,6 @@ button:hover,
     margin-bottom: 10px;
 }
 
-#fadeButton {
-    opacity: 0;
-}
-
-#num_albums {
-    opacity: 0;
-}
-
-#tracks_container {
-    opacity: 0;
-}
-
-#fetchTracksButton{
-    opacity: 0;
-}
-#homeButtonSplitter{
-    opacity: 0;
-}
-#updateTracksButton{
-    opacity: 0;
-}
-button:disabled {
-    cursor: not-allowed;
-}
 .hidden {
     opacity: 0;
     visibility: hidden;
@@ -158,4 +117,25 @@ button:disabled {
 .fade-in {
     opacity: 1 !important;
     visibility: visible !important;
+}
+
+/* Animations */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
 }

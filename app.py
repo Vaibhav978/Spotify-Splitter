@@ -165,7 +165,7 @@ async def construct_tracks_json(sp):
                         "name": track_name,
                         "id": artist_id,
                         "album": album,
-                        "artists": artists,
+                        "artists": list(artists),
                         "acousticness": feature.get('acousticness'),
                         "danceability": feature.get('danceability'),
                         "energy": feature.get('energy'),
