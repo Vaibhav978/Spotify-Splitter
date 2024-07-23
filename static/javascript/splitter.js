@@ -62,11 +62,10 @@ function displayPlaylists(playlists) {
     columnsContainer.className = 'columns-container';
     console.log(Object.keys(playlists));
     const clusterKeys = Object.keys(playlists);
-    const clustersPerRow = 3;  // Set to 3 playlists per row
     let currentRow;
 
     clusterKeys.forEach((clusterKey, index) => {
-        if (index % clustersPerRow === 0) {
+        if (index % 2 === 0) {
             currentRow = document.createElement('div');
             currentRow.className = 'playlist-row';
             columnsContainer.appendChild(currentRow);
@@ -104,7 +103,6 @@ function displayPlaylists(playlists) {
     $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in
     $('#fadeButton, #num_albums').prop('disabled', false);
 }
-
 
 
 function getSplitPlaylists() {

@@ -3,21 +3,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import skew
 import numpy as np
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
-from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split, GridSearchCV
-import json
-import joblib
+from sklearn.preprocessing import StandardScaler
 from pymongo import MongoClient
-import os
+from sklearn.preprocessing import PowerTransformer
 
 
 
 def visualize_data(spotify_id):
+    # Connect to MongoDB
     client = MongoClient('mongodb://localhost:27017/')
     db = client.spotify_db
     users_collection = db.users
+    
+    # Retrieve user data
     user_data = users_collection.find_one({"spotify_id": spotify_id})
     if not user_data:
         print("User not found in the database.")
@@ -28,31 +26,76 @@ def visualize_data(spotify_id):
         print("No tracks found for the user.")
         return None
 
-# MongoDB connection
-    client = MongoClient('mongodb://localhost:27017/')
-    db = client.spotify_db
-    users_collection = db.users
-# Sample data (replace with your actual data)
-    data = pd.DataFrame(all_tracks)
-    feature = 'speechiness'
+    # Convert data to DataFrame
+    df = pd.DataFrame(all_tracks)
 
-# Check skewness
-    skewness = skew(data[feature])
-    print(feature)
-    print(f"Skewness: {skewness}")  
+    # Select features for clustering
+    features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 
+                'liveness', 'loudness', 'speechiness', 'tempo', 'valence']
 
-# Plot histogram
-    plt.hist(data[feature], bins=10, alpha=0.5)
-    plt.title('Histogram of Feature1')
+    # Fill missing values with the mean of each column
+    df[features] = df[features].fillna(df[features].mean())
+
+    # Print skewness of each feature before transformation
+    print("SKEWNESS BEFORE TRANSFORMATION")
+    for feature in features:
+        feature_skewness = skew(df[feature])
+        print(f'Skewness of {feature}: {feature_skewness}')
+
+    # Extract the feature data
+    X = df[features].values
+
+    # Normalize the features
+    scaler = StandardScaler()
+    pt = PowerTransformer(method='yeo-johnson', standardize=True)
+    X_transformed = pt.fit_transform(X)
+    X_transformed = scaler.fit_transform(X_transformed)
+
+    # # Handle skewness
+    # for feature_idx in range(X_scaled.shape[1]):
+    #     feature_skewness = skew(X_scaled[:, feature_idx])
+    #     X_scaled[:, features.index(feature)] = winsorize(X_scaled[:, features.index(feature)], limits=[0.20, 0.20])  # Winsorize at 5% and 95%
+
+    #     max_iterations = 25
+    #     iteration = 0
+    #     while abs(feature_skewness) > 0.5 and iteration < max_iterations:
+    #         min_value = X_scaled[:, feature_idx].min()
+    #         if min_value <= 0:
+    #             X_scaled[:, feature_idx] -= min_value - 1
+            
+    #         if feature_skewness > 1:  # Extremely right-skewed
+    #             X_scaled[:, feature_idx] = np.log1p(X_scaled[:, feature_idx])
+    #         elif feature_skewness > 0.5:  # Moderately right-skewed
+    #             X_scaled[:, feature_idx] = np.sqrt(X_scaled[:, feature_idx])
+    #         elif feature_skewness < -1:  # Extremely left-skewed
+    #             X_scaled[:, feature_idx] = (X_scaled[:, feature_idx] + 1) ** 3
+    #         elif feature_skewness < -0.5:  # Moderately left-skewed
+    #             X_scaled[:, feature_idx] = np.square(X_scaled[:, feature_idx])
+
+    #         feature_skewness = skew(X_scaled[:, feature_idx])
+    #         iteration += 1
+
+    # Print skewness of each feature after transformation
+    print("SKEWNESS AFTER TRANSFORMATION")
+    for feature_idx in range(X_transformed.shape[1]):
+        feature_skewness = skew(X_transformed[:, feature_idx])
+        feature_name = features[feature_idx]
+        print(f'Skewness of {feature_name}: {feature_skewness}')
+
+    feature_to_plot = 'instrumentalness'
+    #Plot histogram and KDE for one feature to visualize
+    plt.hist(df[feature_to_plot], bins=10, alpha=0.5)
+    plt.title(f'Histogram of {feature_to_plot}')
     plt.xlabel('Value')
     plt.ylabel('Frequency')
+    plt.show()
 
-# Plot KDE
-    sns.kdeplot(data[feature])
-    plt.title('KDE Plot of Feature1')
+    sns.kdeplot(df[feature_to_plot])
+    plt.title(f'KDE Plot of {feature_to_plot}')
     plt.xlabel('Value')
     plt.ylabel('Density')
-
     plt.show()
-spotify_id = "d722jkq02u40mfghknaczltac"  # Replace with the actual Spotify ID
+
+# Replace with the actual Spotify ID
+spotify_id = "d722jkq02u40mfghknaczltac"
 visualize_data(spotify_id)

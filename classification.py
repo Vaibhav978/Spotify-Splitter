@@ -8,6 +8,8 @@ import joblib
 from pymongo import MongoClient
 import os
 from scipy.stats import skew
+from sklearn.preprocessing import PowerTransformer
+
 
 # MongoDB connection
 client = MongoClient('mongodb://localhost:27017/')

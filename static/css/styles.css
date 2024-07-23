@@ -120,11 +120,11 @@ button:hover,
 #tracks_container {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-around;
+    justify-content: center;
     overflow-y: auto;
     max-height: 80vh; /* Adjust as needed */
     padding: 10px;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
     background-color: transparent; /* Make background transparent */
     color: #fff; /* Ensure text color is visible */
 }
@@ -132,7 +132,7 @@ button:hover,
 /* Playlist Row Styling */
 .playlist-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: center; /* Center align the row */
     width: 100%;
     margin-bottom: 10px;
 }
@@ -140,7 +140,9 @@ button:hover,
 /* Playlist Container Styling */
 .playlist-container {
     flex: 1;
-    border: 1px solid #ddd;
+    min-width: 300px; /* Set a minimum width to ensure uniformity */
+    max-width: 400px; /* Set a maximum width to prevent overflow */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
     border-radius: 5px;
     padding: 10px;
     margin: 5px;
@@ -179,15 +181,18 @@ button:hover,
     font-size: 0.8rem;
     background: rgba(255, 255, 255, 0.1); /* Ensure dropdown background matches overall style */
     color: white; /* Ensure text color is visible */
-    border: 1px solid #ddd;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
     border-radius: 5px;
 }
 
 /* Columns Container Styling */
 .columns-container {
     display: flex;
-    justify-content: space-between; /* Ensure even spacing between columns */
+    flex-wrap: wrap; /* Ensure columns are wrapped */
+    justify-content: center; /* Center the columns */
     width: 100%; /* Ensure the container takes full width */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
+
 }
 
 /* Animations */
