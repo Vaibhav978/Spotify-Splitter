@@ -9,7 +9,7 @@ from pymongo import MongoClient
 import os
 from scipy.stats import skew
 from sklearn.preprocessing import PowerTransformer
-
+from sklearn.metrics import pairwise_distances_argmin_min
 
 # MongoDB connection
 client = MongoClient('mongodb://localhost:27017/')
@@ -43,19 +43,17 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     # Normalize the features
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
 
     # Handle skewness
-    skewness = [skew(X_scaled[:, i]) for i in range(X_scaled.shape[1])]
-    for feature_idx, feature_skewness in enumerate(skewness):
-        if feature_skewness > 1:  # Extremely right-skewed
-            X_scaled[:, feature_idx] = np.log1p(X_scaled[:, feature_idx])
-        elif feature_skewness > 0.5:  # Moderately right-skewed
-            X_scaled[:, feature_idx] = np.sqrt(X_scaled[:, feature_idx])
-        elif feature_skewness < -1:  # Extremely left-skewed
-            X_scaled[:, feature_idx] = X_scaled[:, feature_idx] ** 3
-        elif feature_skewness < -0.5:  # Moderately left-skewed
-            X_scaled[:, feature_idx] = X_scaled[:, feature_idx] ** 2
+    pt = PowerTransformer(method='yeo-johnson', standardize=True)
+    X_transformed = pt.fit_transform(X)
+    X_transformed = scaler.fit_transform(X_transformed)
+
+    print("SKEWNESS AFTER TRANSFORMATION")
+    for feature_idx in range(X_transformed.shape[1]):
+        feature_skewness = skew(X_transformed[:, feature_idx])
+        feature_name = features[feature_idx]
+        print(f'Skewness of {feature_name}: {feature_skewness}')
 
     # One-hot encode genres
     if load_existing_model and os.path.exists(genres_mlb_path):
@@ -69,7 +67,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     genres_encoded = mlb_genres.transform(df['genres'])
     genres_encoded = genres_encoded.astype(float)
-    genres_encoded *= 1.3  # Adjust the weight of genre features if needed
+    genres_encoded *= 2  # Adjust the weight of genre features if needed
 
     # One-hot encode artists
     if load_existing_model and os.path.exists(artists_mlb_path):
@@ -83,10 +81,10 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     artists_encoded = mlb_artists.transform(df['artists'])
     artists_encoded = artists_encoded.astype(float)
-    artists_encoded *= 1.3  # Adjust the weight of artist features if needed
+    artists_encoded *= 2  # Adjust the weight of artist features if needed
 
     # Combine normalized features with one-hot encoded genres and artists
-    X_combined = np.hstack((X_scaled, genres_encoded, artists_encoded))
+    X_combined = np.hstack((X_transformed, genres_encoded, artists_encoded))
     print(f"Shape of combined feature matrix: {X_combined.shape}")
 
     # Check for any remaining NaN values
@@ -141,18 +139,37 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     # Get cluster labels for the entire dataset
     df['cluster_label'] = best_kmeans.predict(X_combined)
 
-    # Count number of tracks in each cluster
     cluster_counts = df['cluster_label'].value_counts().sort_index()
 
-    # Print number of tracks in each cluster
-    print("Number of tracks in each cluster:")
-    for cluster, count in cluster_counts.items():
-        print(f"Cluster {cluster}: {count} tracks")
+    min_cluster_size = 10  # Define your threshold
+    small_clusters = cluster_counts[cluster_counts < min_cluster_size].index
+    small_cluster_points = df[df['cluster_label'].isin(small_clusters)]
 
     # Save the DataFrame with cluster labels back to CSV
+
+    cluster_centers = best_kmeans.cluster_centers_
+
+    # Exclude small cluster centers
+    large_cluster_centers = np.delete(cluster_centers, small_clusters, axis=0)
+
+    # Compute distances of small cluster points to large cluster centers
+    small_cluster_combined_features = X_combined[df['cluster_label'].isin(small_clusters)]
+    distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
+
+    # Assign new cluster labels to these points
+    new_cluster_labels = assignments
+
+    # Update DataFrame with new cluster labels
+    df.loc[df['cluster_label'].isin(small_clusters), 'cluster_label'] = new_cluster_labels.astype(int)
+
+    # Recount cluster sizes after reassignment
+    updated_cluster_counts = df['cluster_label'].value_counts().sort_index()
+
+    print("Number of tracks in each cluster after reassignment:")
+    for cluster, count in updated_cluster_counts.items():
+        print(f"Cluster {cluster}: {count} tracks")
     df_sorted = df.sort_values(by='cluster_label', ascending=True)
     df_sorted.to_csv(output_csv, index=False)
-
     # Create a dictionary to store clusters
     clusters_dict = {cluster: [] for cluster in range(best_kmeans.n_clusters)}
     for _, row in df_sorted.iterrows():
