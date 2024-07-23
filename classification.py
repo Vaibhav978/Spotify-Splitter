@@ -7,7 +7,6 @@ import json
 import joblib
 from pymongo import MongoClient
 import os
-from scipy.stats import skew
 from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
 
@@ -49,12 +48,6 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     X_transformed = pt.fit_transform(X)
     X_transformed = scaler.fit_transform(X_transformed)
 
-    print("SKEWNESS AFTER TRANSFORMATION")
-    for feature_idx in range(X_transformed.shape[1]):
-        feature_skewness = skew(X_transformed[:, feature_idx])
-        feature_name = features[feature_idx]
-        print(f'Skewness of {feature_name}: {feature_skewness}')
-
     # One-hot encode genres
     if load_existing_model and os.path.exists(genres_mlb_path):
         mlb_genres = joblib.load(genres_mlb_path)
@@ -67,7 +60,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     genres_encoded = mlb_genres.transform(df['genres'])
     genres_encoded = genres_encoded.astype(float)
-    genres_encoded *= 2  # Adjust the weight of genre features if needed
+    genres_encoded *= 1.3  # Adjust the weight of genre features if needed
 
     # One-hot encode artists
     if load_existing_model and os.path.exists(artists_mlb_path):
@@ -81,7 +74,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     artists_encoded = mlb_artists.transform(df['artists'])
     artists_encoded = artists_encoded.astype(float)
-    artists_encoded *= 2  # Adjust the weight of artist features if needed
+    artists_encoded *= 1.5  # Adjust the weight of artist features if needed
 
     # Combine normalized features with one-hot encoded genres and artists
     X_combined = np.hstack((X_transformed, genres_encoded, artists_encoded))
@@ -139,46 +132,56 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     # Get cluster labels for the entire dataset
     df['cluster_label'] = best_kmeans.predict(X_combined)
 
+    # Initial cluster counts
     cluster_counts = df['cluster_label'].value_counts().sort_index()
 
     min_cluster_size = 10  # Define your threshold
-    small_clusters = cluster_counts[cluster_counts < min_cluster_size].index
-    small_cluster_points = df[df['cluster_label'].isin(small_clusters)]
 
-    # Save the DataFrame with cluster labels back to CSV
+    iteration = 1
+    while True:
+        small_clusters = cluster_counts[cluster_counts < min_cluster_size].index.tolist()
+        if len(small_clusters) == 0:
+            break
 
-    cluster_centers = best_kmeans.cluster_centers_
+        print(f"Iteration {iteration}: Found {len(small_clusters)} small clusters.")
+        
+        # Exclude small cluster centers
+        large_cluster_centers = np.delete(best_kmeans.cluster_centers_, small_clusters, axis=0)
 
-    # Exclude small cluster centers
-    large_cluster_centers = np.delete(cluster_centers, small_clusters, axis=0)
+        # Compute distances of small cluster points to large cluster centers
+        small_cluster_combined_features = X_combined[df['cluster_label'].isin(small_clusters)]
+        distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
 
-    # Compute distances of small cluster points to large cluster centers
-    small_cluster_combined_features = X_combined[df['cluster_label'].isin(small_clusters)]
-    distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
+        # Map the assignments back to the original cluster labels
+        new_labels = np.array([list(set(range(len(best_kmeans.cluster_centers_))) - set(small_clusters))[int(new_label)] for new_label in assignments])
 
-    # Assign new cluster labels to these points
-    new_cluster_labels = assignments
+        # Assign new cluster labels to these points
+        df.loc[df['cluster_label'].isin(small_clusters), 'cluster_label'] = new_labels
 
-    # Update DataFrame with new cluster labels
-    df.loc[df['cluster_label'].isin(small_clusters), 'cluster_label'] = new_cluster_labels.astype(int)
+        # Recompute cluster counts
+        cluster_counts = df['cluster_label'].value_counts().sort_index()
 
-    # Recount cluster sizes after reassignment
-    updated_cluster_counts = df['cluster_label'].value_counts().sort_index()
+        iteration += 1
 
+    # Print number of tracks in each cluster after all iterations
+    final_cluster_counts = df['cluster_label'].value_counts().sort_index()
     print("Number of tracks in each cluster after reassignment:")
-    for cluster, count in updated_cluster_counts.items():
+    for cluster, count in final_cluster_counts.items():
         print(f"Cluster {cluster}: {count} tracks")
-    df_sorted = df.sort_values(by='cluster_label', ascending=True)
-    df_sorted.to_csv(output_csv, index=False)
+
     # Create a dictionary to store clusters
     clusters_dict = {cluster: [] for cluster in range(best_kmeans.n_clusters)}
-    for _, row in df_sorted.iterrows():
+    for _, row in df.iterrows():
         track_info = row.to_dict()
         cluster_label = track_info.pop('cluster_label')
         clusters_dict[cluster_label].append(track_info)
 
     # Convert the clusters dictionary to JSON
     clusters_json = json.dumps(clusters_dict, indent=4)
+
+    # Save the DataFrame with updated cluster labels back to CSV
+    df_sorted = df.sort_values(by='cluster_label', ascending=True)
+    df_sorted.to_csv(output_csv, index=False)
 
     print(f"\nClustering completed. Results saved to {output_csv}")
     return clusters_json
