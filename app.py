@@ -323,20 +323,20 @@ def get_tracks():
             user_data = get_user_data(spotify_id)
             return jsonify(user_data)
         else:
-            sp = Spotify(auth=token)
-            all_tracks = asyncio.run(construct_tracks_json(sp))
-            if all_tracks:
-                user_entry = {
-                    "spotify_id": spotify_id,
-                    "tracks": all_tracks
-                }
-                user_entry.pop('_id',None)
-                # Insert the new user entry into the database
-                users_collection.insert_one(user_entry)
-                return jsonify(user_entry)
+            # sp = Spotify(auth=token)
+            # all_tracks = asyncio.run(construct_tracks_json(sp))
+            # if all_tracks:
+            #     user_entry = {
+            #         "spotify_id": spotify_id,
+            #         "tracks": all_tracks
+            #     }
+            #     user_entry.pop('_id',None)
+            #     # Insert the new user entry into the database
+            #     users_collection.insert_one(user_entry)
+            #     return jsonify(user_entry)
         
-            else:
-                return jsonify({"error": "No tracks found"})
+            # else:
+            return jsonify({"error": "No User Found, please add tracks to the database first"})
     else:
         return jsonify({"error": "No token available or token expired"})
 
@@ -393,7 +393,7 @@ def update_tracks():
         else:
             return jsonify({"error": "No token available or token expired"})
     except Exception:
-        return jsonify('error')
+        return jsonify('error: Your network was too slow, please try again')
 
     
     

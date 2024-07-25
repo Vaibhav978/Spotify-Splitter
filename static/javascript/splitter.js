@@ -140,11 +140,16 @@ function hideElementsWhenGettingInformation(){
 
 function displayTracks(data) {
     console.log(data);
-    const tracks = data.tracks;
-    
+
     const container = document.getElementById('tracks_container');
     container.innerHTML = '';  // Clear existing content
-
+    if (data.error) {
+        const message = document.createElement('h3');
+        message.textContent = data.error;
+        container.appendChild(message);
+    }
+    else{
+    tracks = data.tracks
     const header = document.createElement('h3');
     header.textContent = `Obtained ${tracks.length} saved tracks`;
     container.appendChild(header);
@@ -183,5 +188,6 @@ function displayTracks(data) {
     $('#num_albums').css('opacity', 0).fadeTo(1000, 1);
     $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in
     $('#fadeButton, #num_albums').prop('disabled', false);
+}
 }
 
