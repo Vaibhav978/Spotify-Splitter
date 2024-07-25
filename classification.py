@@ -60,7 +60,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     genres_encoded = mlb_genres.transform(df['genres'])
     genres_encoded = genres_encoded.astype(float)
-    genres_encoded *= 1.3  # Adjust the weight of genre features if needed
+    genres_encoded *= 4  # Adjust the weight of genre features if needed
 
     # One-hot encode artists
     if load_existing_model and os.path.exists(artists_mlb_path):
@@ -74,7 +74,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     artists_encoded = mlb_artists.transform(df['artists'])
     artists_encoded = artists_encoded.astype(float)
-    artists_encoded *= 1.5  # Adjust the weight of artist features if needed
+    artists_encoded *= 4  # Adjust the weight of artist features if needed
 
     # Combine normalized features with one-hot encoded genres and artists
     X_combined = np.hstack((X_transformed, genres_encoded, artists_encoded))
@@ -169,8 +169,13 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     for cluster, count in final_cluster_counts.items():
         print(f"Cluster {cluster}: {count} tracks")
 
+    # Reassign cluster labels to be sequential
+    unique_labels = sorted(df['cluster_label'].unique())
+    label_map = {old_label: new_label for new_label, old_label in enumerate(unique_labels)}
+    df['cluster_label'] = df['cluster_label'].map(label_map)
+
     # Create a dictionary to store clusters
-    clusters_dict = {cluster: [] for cluster in range(best_kmeans.n_clusters)}
+    clusters_dict = {label_map[cluster]: [] for cluster in unique_labels}
     for _, row in df.iterrows():
         track_info = row.to_dict()
         cluster_label = track_info.pop('cluster_label')
@@ -185,7 +190,3 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     print(f"\nClustering completed. Results saved to {output_csv}")
     return clusters_json
-
-# Example usage:
-spotify_id = "d722jkq02u40mfghknaczltac"  # Replace with the actual Spotify ID
-clusters_json = cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_clusters.csv', model_path='kmeans_model.pkl', genres_mlb_path='genres_mlb.pkl', artists_mlb_path='artists_mlb.pkl', feature_dim_path='feature_dim.pkl', load_existing_model=True)

@@ -352,48 +352,48 @@ def get_user_data(spotify_id):
 
 @app.route("/updatetracks", methods=['GET'])
 def update_tracks():
-    print("Entered update_tracks")
-    code = request.args.get("code")
-    token = session.get('token')
-    spotify_id = session.get('spotify_id')
+    try:
+        print("Entered update_tracks")
+        code = request.args.get("code")
+        token = session.get('token')
+        spotify_id = session.get('spotify_id')
 
-    if code and (not token or token_expired()):
-        token = get_token(code)
-        session['token'] = token
+        if code and (not token or token_expired()):
+            token = get_token(code)
+            session['token'] = token
 
-    if token:
-        if user_exists_in_database(spotify_id):
-            delete_user_by_spotify_id_from_database(spotify_id)
+        if token:
+            sp = Spotify(auth=token)
+            all_tracks = asyncio.run(construct_tracks_json(sp))
         
-        sp = Spotify(auth=token)
-        all_tracks = asyncio.run(construct_tracks_json(sp))
-        
-        if all_tracks:
-            user_entry = {
-                "spotify_id": spotify_id,
-                "tracks": all_tracks
-            }
-            user_entry.pop('_id', None)
+            if all_tracks:
+                user_entry = {
+                    "spotify_id": spotify_id,
+                    "tracks": all_tracks
+                }
+                user_entry.pop('_id', None)
 
             # Update or insert (upsert=True) the document
-            result = users_collection.update_one(
-                {"spotify_id": spotify_id},
-                {"$set": user_entry},
-                upsert=True
-            )
+                result = users_collection.update_one(
+                    {"spotify_id": spotify_id},
+                    {"$set": user_entry},
+                    upsert=True
+                )
 
-            if result.upserted_id:
-                user_entry["_id"] = str(result.upserted_id)
-            else:
-                user_entry.pop("_id", None)
+                if result.upserted_id:
+                    user_entry["_id"] = str(result.upserted_id)
+                else:
+                    user_entry.pop("_id", None)
             
-            return jsonify(user_entry)
+                return jsonify(user_entry)
 
-        else:
-            return jsonify({"error": "No tracks found"})
+            else:
+                return jsonify({"error": "No tracks found"})
     
-    else:
-        return jsonify({"error": "No token available or token expired"})
+        else:
+            return jsonify({"error": "No token available or token expired"})
+    except Exception:
+        return jsonify('error')
 
     
     
@@ -415,6 +415,7 @@ def split_tracks():
         if token:
             classified_playlists = cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
             return classified_playlists
+
     
 def kill_process_on_port(port):
     """Kills any processes running on the specified port."""

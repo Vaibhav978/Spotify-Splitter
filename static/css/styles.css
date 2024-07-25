@@ -194,6 +194,10 @@ button:hover,
     border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
 
 }
+.track:hover {
+    box-shadow: 0 0 10px rgba(30, 215, 96, 0.7);
+    transform: scale(1.05);
+}
 
 /* Animations */
 @keyframes fade-in {

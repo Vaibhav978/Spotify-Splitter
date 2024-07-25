@@ -81,6 +81,7 @@ function displayPlaylists(playlists) {
 
         const button = document.createElement('button');
         button.textContent = 'Add Playlist to Spotify Account';
+        button.setAttribute('data-cluster', clusterKey); // Add data attribute
         clusterContainer.appendChild(button);
 
         const dropdown = document.createElement('select');
@@ -102,7 +103,25 @@ function displayPlaylists(playlists) {
     $('#num_albums').css('opacity', 0).fadeTo(1000, 1);
     $('#tracks_container').css('opacity', 0).fadeTo(1000, 1); // Ensure the container fades in
     $('#fadeButton, #num_albums').prop('disabled', false);
+
+    // Attach event listeners to buttons
+    const buttons = document.querySelectorAll('.playlist-container button');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const clusterNumber = this.getAttribute('data-cluster');
+            console.log(`Button for cluster ${clusterNumber} clicked`);
+            // Call your function with the cluster number
+            yourFunction(clusterNumber);
+        });
+    });
 }
+
+// Your function to be called with the cluster number
+function yourFunction(clusterNumber) {
+    console.log(`Function called with cluster number: ${clusterNumber}`);
+    // Add your functionality here
+}
+
 
 
 function getSplitPlaylists() {
