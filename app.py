@@ -22,12 +22,13 @@ SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
 load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
-scope = "user-library-read user-read-private user-read-email"
+scope = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 
 # MongoDB connection
 client = MongoClient('mongodb://localhost:27017/')
 db = client.spotify_db
 users_collection = db.users
+
 
 
 def create_spotify_oauth():
@@ -61,7 +62,8 @@ def refresh_token():
     }
     data = {
         "grant_type": "refresh_token",
-        "refresh_token": refresh_token
+        "refresh_token": refresh_token,
+        "scope": scope
     }
 
     response = requests.post(url, headers=headers, data=data)
@@ -96,7 +98,8 @@ def get_token(code):
     data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": SPOTIFY_REDIRECT_URI
+        "redirect_uri": SPOTIFY_REDIRECT_URI,
+        "scope": scope
     }
 
     response = requests.post(url, headers=headers, data=data)
@@ -158,7 +161,6 @@ async def construct_tracks_json(sp):
                 for artist_id in artist_ids:
                     genres.update(artist_genres_dict.get(artist_id, []))
                 
-                popularity = track.get('popularity')
                 feature = features[i]
                 if feature:
                     track_info = {
@@ -228,7 +230,7 @@ def renderWebsite():
 
 @app.route('/login')
 def login():
-    scopes = "user-read-private user-read-email user-library-read"
+    scopes = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
     spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
     return redirect(spotify_auth_url)
 
@@ -416,7 +418,95 @@ def split_tracks():
             classified_playlists = cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
             return classified_playlists
 
-    
+@app.route('/addplaylist', methods=['POST'])
+def create_playlist():
+    try:
+        code = request.args.get("code")
+        token = session.get('token')
+        spotify_id = session.get('spotify_id')
+        data = request.json
+        session['token'] = token
+        playlist_name = data.get('playlistName')
+        cluster_number = data.get('clusterNumber')
+        clusters_data = data.get('clusters')
+
+        if code and (not token or token_expired()):
+            token = get_token(code)
+        else:
+            if token_expired():
+                token = refresh_token()
+                session['token'] = token
+
+        if token:
+            cluster = clusters_data.get(cluster_number)
+            if not cluster:
+                return jsonify({"error": "Invalid cluster number or cluster not found"})
+
+            spotify_id_list = [track.get('id') for track in cluster]
+            if not spotify_id_list:
+                return jsonify({"error": "No tracks found in the cluster"})
+
+            sp = Spotify(auth=token)
+            spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
+
+            try:
+                playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
+                playlist_id = playlist['id']
+                print(playlist_id)
+                add_tracks_to_playlist(sp, playlist_id, spotify_ids_uris)
+                return jsonify({"success": "Playlist created and tracks added successfully"})
+            except Exception as e:
+                print(f"Error creating playlist or adding tracks: {e}")
+                return jsonify({"error": "Error creating playlist or adding tracks"})
+        else:
+            return jsonify({"error": "No token available or token expired"})
+    except Exception as e:
+        print(f"Unexpected error in create_playlist: {e}")
+        return jsonify({"error": "Unexpected error occurred"})
+
+
+def add_tracks_to_playlist(sp, playlist_id, track_ids):
+    code = request.args.get("code")
+    token = session.get('token')
+    chunk_size = 100
+    if code and (not token or token_expired()):
+        token = get_token(code)
+    else:
+        if token_expired():
+            token = refresh_token()
+            session['token'] = token
+
+    for i in range(0, len(track_ids), chunk_size):
+        chunk = track_ids[i:i + chunk_size]
+        try:
+            print(f"Adding chunk to playlist {playlist_id}: {chunk}")
+            sp.playlist_add_items(playlist_id, chunk)
+            print(f"Successfully added chunk to playlist {playlist_id}")
+        except Exception as e:
+            print(f"Exception while adding tracks {chunk}: {e}")
+            return {"error": f"Exception while adding tracks: {str(e)}"}
+
+    # Verify the tracks have been added to the playlist
+    verify_playlist_contents(sp, playlist_id)
+    return {"success": "Tracks added to playlist successfully."}
+
+
+def verify_playlist_contents(sp, playlist_id):
+    try:
+        playlist_tracks = sp.playlist_tracks(playlist_id)
+        print(f"Current tracks in playlist {playlist_id}:")
+        for item in playlist_tracks['items']:
+            track = item['track']
+            print(f"Track Name: {track['name']}, Track URI: {track['uri']}")
+    except Exception as e:
+        print(f"Error retrieving playlist tracks: {e}")
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('renderWebsite'))
+
 def kill_process_on_port(port):
     """Kills any processes running on the specified port."""
     try:
@@ -435,4 +525,5 @@ def kill_process_on_port(port):
         print(f"No processes found on port {port}")
 if __name__ == '__main__':
     kill_process_on_port(5002)
+    time.sleep(2)
     app.run(port=5002)

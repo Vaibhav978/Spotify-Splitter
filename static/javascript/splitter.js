@@ -76,7 +76,7 @@ function displayPlaylists(playlists) {
         clusterContainer.className = 'playlist-container';
 
         const header = document.createElement('h4');
-        header.textContent = `Playlist ${parseInt(clusterKey) + 1}`;
+        header.textContent = `Playlist ${parseInt(clusterKey) + 1}: ${cluster.length} tracks`;
         clusterContainer.appendChild(header);
 
         const button = document.createElement('button');
@@ -111,15 +111,54 @@ function displayPlaylists(playlists) {
             const clusterNumber = this.getAttribute('data-cluster');
             console.log(`Button for cluster ${clusterNumber} clicked`);
             // Call your function with the cluster number
-            yourFunction(clusterNumber);
+            showModal(clusterNumber, playlists);
         });
     });
 }
 
 // Your function to be called with the cluster number
-function yourFunction(clusterNumber) {
-    console.log(`Function called with cluster number: ${clusterNumber}`);
-    // Add your functionality here
+function showModal(clusterNumber, playlists) {
+    $('#overlay').removeClass('hidden-splitter').addClass('show');
+    $('#playlistName').val('');
+    
+    $('#confirmButton').off('click').on('click', function() {
+        const playlistName = $('#playlistName').val();
+        console.log(`Confirmed playlist name: ${playlistName} for cluster ${clusterNumber}`);
+        addClusterToPlaylist(playlistName,clusterNumber, playlists);
+        hideModal();
+        // Add additional functionality for confirming the playlist name here
+    });
+
+    $('#cancelButton').off('click').on('click', function() {
+        hideModal();
+    });
+}
+function addClusterToPlaylist(playlistName, clusterNumber, clustersData){
+    const url = '/addplaylist';
+    
+    // Prepare the data to send
+    ;
+
+    // Make the POST request
+    $.ajax({
+        url: url,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({"playlistName": playlistName, "clusterNumber": clusterNumber, 'clusters': clustersData}),
+        success: function(result) {
+            console.log('Success:', result);
+            // Handle success (e.g., update UI, show a message, etc.)
+        },
+        error: function(error) {
+            console.error('Error:', error);
+            // Handle error
+        }
+    });
+}
+
+// Hide the modal
+function hideModal() {
+    $('#overlay').removeClass('show').addClass('hidden-splitter');
 }
 
 

@@ -21,6 +21,14 @@
     <div id="tracks_container">
         <!-- Tracks will be displayed here -->
     </div>
+    <div id="overlay">
+        <div id="playlistModal">
+            <label for="playlistName" id="playlistLabel">Enter a name for your playlist:</label>
+            <input type="text" id="playlistName">
+            <button class="btn" id="confirmButton">Confirm</button>
+            <button class="btn" id="cancelButton">Cancel</button>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='javascript/splitter.js') }}"></script>
 </body>
