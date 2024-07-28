@@ -420,52 +420,44 @@ def split_tracks():
 
 @app.route('/addplaylist', methods=['POST'])
 def create_playlist():
-    try:
-        code = request.args.get("code")
-        token = session.get('token')
-        spotify_id = session.get('spotify_id')
-        data = request.json
-        session['token'] = token
-        playlist_name = data.get('playlistName')
-        cluster_number = data.get('clusterNumber')
-        clusters_data = data.get('clusters')
+    code = request.args.get("code")
+    token = session.get('token')
+    spotify_id = session.get('spotify_id')
+    data = request.json
+    session['token'] = token
+    playlist_name = data.get('playlistName')
+    cluster_number = data.get('clusterNumber')
+    clusters_data = data.get('clusters')
 
-        if code and (not token or token_expired()):
-            token = get_token(code)
-        else:
-            if token_expired():
-                token = refresh_token()
-                session['token'] = token
+    if code and (not token or token_expired()):
+        token = get_token(code)
+    else:
+        if token_expired():
+            token = refresh_token()
+            session['token'] = token
 
-        if token:
-            cluster = clusters_data.get(cluster_number)
-            if not cluster:
-                return jsonify({"error": "Invalid cluster number or cluster not found"})
+    if token:
+        cluster = clusters_data.get(cluster_number)
+        if not cluster:
+            return jsonify({"error": "Invalid cluster number or cluster not found"})
 
-            spotify_id_list = [track.get('id') for track in cluster]
-            if not spotify_id_list:
-                return jsonify({"error": "No tracks found in the cluster"})
+        spotify_id_list = [track.get('id') for track in cluster]
+        if not spotify_id_list:
+            return jsonify({"error": "No tracks found in the cluster"})
 
-            sp = Spotify(auth=token)
-            spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
+        sp = Spotify(auth=token)
+        spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
 
-            try:
-                playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
-                playlist_id = playlist['id']
-                print(playlist_id)
-                add_tracks_to_playlist(sp, playlist_id, spotify_ids_uris)
-                return jsonify({"success": "Playlist created and tracks added successfully"})
-            except Exception as e:
-                print(f"Error creating playlist or adding tracks: {e}")
-                return jsonify({"error": "Error creating playlist or adding tracks"})
-        else:
-            return jsonify({"error": "No token available or token expired"})
-    except Exception as e:
-        print(f"Unexpected error in create_playlist: {e}")
-        return jsonify({"error": "Unexpected error occurred"})
+        playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
+        playlist_id = playlist['id']
+        print(playlist_id)
+        add_tracks_to_playlist(playlist_id, spotify_ids_uris)
+        return jsonify({"success": "Playlist created and tracks added successfully"})
+    else:
+        return jsonify({"error": "No token available or token expired"})
 
 
-def add_tracks_to_playlist(sp, playlist_id, track_ids):
+def add_tracks_to_playlist(playlist_id, track_ids):
     code = request.args.get("code")
     token = session.get('token')
     chunk_size = 100
@@ -476,15 +468,13 @@ def add_tracks_to_playlist(sp, playlist_id, track_ids):
             token = refresh_token()
             session['token'] = token
 
+    sp = Spotify(auth=token)
     for i in range(0, len(track_ids), chunk_size):
         chunk = track_ids[i:i + chunk_size]
-        try:
-            print(f"Adding chunk to playlist {playlist_id}: {chunk}")
-            sp.playlist_add_items(playlist_id, chunk)
-            print(f"Successfully added chunk to playlist {playlist_id}")
-        except Exception as e:
-            print(f"Exception while adding tracks {chunk}: {e}")
-            return {"error": f"Exception while adding tracks: {str(e)}"}
+        print(f"Adding chunk to playlist {playlist_id}: {chunk}")
+        response = sp.playlist_add_items(playlist_id, chunk)
+        print(f"Successfully added chunk to playlist {playlist_id}")
+        print(f"Response: {response}")
 
     # Verify the tracks have been added to the playlist
     verify_playlist_contents(sp, playlist_id)
@@ -492,15 +482,12 @@ def add_tracks_to_playlist(sp, playlist_id, track_ids):
 
 
 def verify_playlist_contents(sp, playlist_id):
-    try:
-        playlist_tracks = sp.playlist_tracks(playlist_id)
-        print(f"Current tracks in playlist {playlist_id}:")
-        for item in playlist_tracks['items']:
-            track = item['track']
-            print(f"Track Name: {track['name']}, Track URI: {track['uri']}")
-    except Exception as e:
-        print(f"Error retrieving playlist tracks: {e}")
-
+    playlist_tracks = sp.playlist_tracks(playlist_id, fields=None, limit=100, offset=0, market=None)
+    print(f"Current tracks in playlist {playlist_id}:")
+    print(playlist_tracks)
+    for item in playlist_tracks['items']:
+        track = item['track']
+        print(f"Track Name: {track['track']}, Track URI: {track['uri']}")
 
 @app.route('/logout')
 def logout():
