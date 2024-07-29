@@ -162,7 +162,7 @@ function createPlaylistFromCluster(playlistName, clusterNumber, clustersData) {
             // Call the function to add tracks to this new playlist using the obtained playlistId and token
             const cluster = clustersData[clusterNumber];
             const trackUris = cluster.map(track => `spotify:track:${track.id}`);
-            addTracksToPlaylist(playlistId, trackUris, token);
+            //addTracksToPlaylist(playlistId, trackUris, token);
         } else {
             console.error('Error:', result.error);
         }

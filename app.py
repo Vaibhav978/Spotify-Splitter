@@ -16,14 +16,15 @@ from pymongo import MongoClient
 import subprocess
 import logging
 import signal
+from add_to_playlist import *
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
 SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
 load_dotenv()
-client_id = os.getenv("CLIENT_ID")
-client_secret = os.getenv("CLIENT_SECRET")
-scope = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
 
 # MongoDB connection
@@ -35,10 +36,10 @@ users_collection = db.users
 
 def create_spotify_oauth():
     return SpotifyOAuth(
-        client_id=client_id,
-        client_secret=client_secret,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
         redirect_uri=SPOTIFY_REDIRECT_URI,
-        scope=scope
+        scope=SCOPE
     )
 
 def token_expired():
@@ -53,7 +54,7 @@ def refresh_token():
         print("Refresh token not available")
         return None
 
-    auth_string = f"{client_id}:{client_secret}"
+    auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
     auth_bytes = auth_string.encode("utf-8")
     auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
 
@@ -65,7 +66,7 @@ def refresh_token():
     data = {
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
-        "scope": scope
+        "scope": SCOPE
     }
 
     response = requests.post(url, headers=headers, data=data)
@@ -88,7 +89,7 @@ def set_token(new_token):
     session['token'] = new_token
 
 def get_token(code):
-    auth_string = f"{client_id}:{client_secret}"
+    auth_string = f"{CLIENT_ID}:{CLIENT_SECRET}"
     auth_bytes = auth_string.encode("utf-8")
     auth_base64 = base64.b64encode(auth_bytes).decode('utf-8')
 
@@ -101,7 +102,7 @@ def get_token(code):
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": SPOTIFY_REDIRECT_URI,
-        "scope": scope
+        "scope": SCOPE
     }
 
     response = requests.post(url, headers=headers, data=data)
@@ -233,7 +234,7 @@ def renderWebsite():
 @app.route('/login')
 def login():
     scopes = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
-    spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={client_id}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
+    spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
     return redirect(spotify_auth_url)
 
 @app.route("/user")
@@ -450,15 +451,17 @@ def create_playlist():
 
         sp = spotipy.Spotify(auth=token)
         spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
-
         # Remove duplicates
         spotify_ids_uris = list(set(spotify_ids_uris))
+        print(spotify_ids_uris)
 
         # Create the playlist
         playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
         playlist_id = playlist['id']
+        print(playlist_id)
         logging.debug(f"Created playlist with ID: {playlist_id}")
-        #add_tracks_to_playlist(playlist_id, spotify_ids_uris)
+        time.sleep(4)
+        add_tracks_to_playlist_caller(spotify_ids_uris, playlist_id)
 
         # Verify playlist contents
 
@@ -467,47 +470,12 @@ def create_playlist():
         return jsonify({"error": "No token available or token expired"})
 
 
-def add_tracks_to_playlist(playlist_id, track_ids):
-    print("PLAYLIST ID:")
-    print(playlist_id)
-    chunk_size = 100
-    print(track_ids)
-    # Ensure token is valid
-    code = request.args.get("code")
-    token = session.get('token')
-    if code and (not token or token_expired()):
-        token = get_token(code)
-    elif token_expired():
-        token = refresh_token()
-        session["token"] = token
-
-    if not token:
-        return {"error": "No valid token available"}
-
-    for i in range(0, len(track_ids), chunk_size):
-        chunk = track_ids[i:i + chunk_size]
-        song_list = '%2C'.join(chunk).replace(':', '%3A')
-        url = f"{BASE_URL}/playlists/{playlist_id}/tracks?uris={song_list}"
-        
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {token}"
-        }
-
-        try:
-            response = requests.post(url, headers=headers)
-            if response.status_code in [200, 201]:
-                print(f"Successfully added chunk to playlist {playlist_id}")
-            else:
-                print(f"Failed to add chunk to playlist {playlist_id}: {response.status_code} - {response.text}")            
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            return {"error": "Error adding tracks to playlist"}
-    
-    # Verify the tracks have been added to the playlist
-    verify_playlist_contents(token, playlist_id)
-    return {"success": "Tracks added to playlist successfully."}
+def add_tracks_to_playlist_caller(track_ids, playlist_id):
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
+                                                   client_secret=CLIENT_SECRET,
+                                                   redirect_uri=SPOTIFY_REDIRECT_URI,
+                                                   scope='playlist-modify-public'))
+    add_tracks_to_playlist(sp, playlist_id, track_ids)
 
 #this gives an error due to the fact the add isn't working correctly.
 def verify_playlist_contents(token, playlist_id):
