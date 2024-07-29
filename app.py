@@ -14,6 +14,7 @@ import pandas as pd
 from classification import *
 from pymongo import MongoClient
 import subprocess
+import logging
 import signal
 
 app = Flask(__name__, static_url_path='/static')
@@ -23,6 +24,7 @@ load_dotenv()
 client_id = os.getenv("CLIENT_ID")
 client_secret = os.getenv("CLIENT_SECRET")
 scope = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
+BASE_URL = "https://api.spotify.com/v1"
 
 # MongoDB connection
 client = MongoClient('mongodb://localhost:27017/')
@@ -418,7 +420,7 @@ def split_tracks():
             classified_playlists = cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
             return classified_playlists
 
-@app.route('/addplaylist', methods=['POST'])
+@app.route('/createplaylist', methods=['POST'])
 def create_playlist():
     code = request.args.get("code")
     token = session.get('token')
@@ -440,49 +442,78 @@ def create_playlist():
         cluster = clusters_data.get(cluster_number)
         if not cluster:
             return jsonify({"error": "Invalid cluster number or cluster not found"})
-
-        spotify_id_list = [track.get('id') for track in cluster]
+        spotify_name_list = [track.get('name')for track in cluster if track.get('name')]
+        #print(spotify_name_list)
+        spotify_id_list = [track.get('id') for track in cluster if track.get('id')]
         if not spotify_id_list:
-            return jsonify({"error": "No tracks found in the cluster"})
+            return jsonify({"error": "No valid tracks found in the cluster"})
 
-        sp = Spotify(auth=token)
+        sp = spotipy.Spotify(auth=token)
         spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
 
+        # Remove duplicates
+        spotify_ids_uris = list(set(spotify_ids_uris))
+
+        # Create the playlist
         playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
         playlist_id = playlist['id']
-        print(playlist_id)
-        add_tracks_to_playlist(playlist_id, spotify_ids_uris)
-        return jsonify({"success": "Playlist created and tracks added successfully"})
+        logging.debug(f"Created playlist with ID: {playlist_id}")
+        #add_tracks_to_playlist(playlist_id, spotify_ids_uris)
+
+        # Verify playlist contents
+
+        return jsonify({"success": "Playlist created and tracks added successfully", "playlistId": playlist_id, "token": token })
     else:
         return jsonify({"error": "No token available or token expired"})
 
 
 def add_tracks_to_playlist(playlist_id, track_ids):
+    print("PLAYLIST ID:")
+    print(playlist_id)
+    chunk_size = 100
+    print(track_ids)
+    # Ensure token is valid
     code = request.args.get("code")
     token = session.get('token')
-    chunk_size = 100
     if code and (not token or token_expired()):
         token = get_token(code)
-    else:
-        if token_expired():
-            token = refresh_token()
-            session['token'] = token
+    elif token_expired():
+        token = refresh_token()
+        session["token"] = token
 
-    sp = Spotify(auth=token)
+    if not token:
+        return {"error": "No valid token available"}
+
     for i in range(0, len(track_ids), chunk_size):
         chunk = track_ids[i:i + chunk_size]
-        print(f"Adding chunk to playlist {playlist_id}: {chunk}")
-        response = sp.playlist_add_items(playlist_id, chunk)
-        print(f"Successfully added chunk to playlist {playlist_id}")
-        print(f"Response: {response}")
+        song_list = '%2C'.join(chunk).replace(':', '%3A')
+        url = f"{BASE_URL}/playlists/{playlist_id}/tracks?uris={song_list}"
+        
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}"
+        }
 
+        try:
+            response = requests.post(url, headers=headers)
+            if response.status_code in [200, 201]:
+                print(f"Successfully added chunk to playlist {playlist_id}")
+            else:
+                print(f"Failed to add chunk to playlist {playlist_id}: {response.status_code} - {response.text}")            
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            return {"error": "Error adding tracks to playlist"}
+    
     # Verify the tracks have been added to the playlist
-    verify_playlist_contents(sp, playlist_id)
+    verify_playlist_contents(token, playlist_id)
     return {"success": "Tracks added to playlist successfully."}
 
-
-def verify_playlist_contents(sp, playlist_id):
-    playlist_tracks = sp.playlist_tracks(playlist_id, fields=None, limit=100, offset=0, market=None)
+#this gives an error due to the fact the add isn't working correctly.
+def verify_playlist_contents(token, playlist_id):
+    sp = Spotify(auth=token)
+    fields = "items(track(name, uri)), total"
+    playlist_tracks = sp.playlist_tracks(playlist_id, fields=fields, limit=100, offset=0, market=None)
     print(f"Current tracks in playlist {playlist_id}:")
     print(playlist_tracks)
     for item in playlist_tracks['items']:

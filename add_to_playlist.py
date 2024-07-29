@@ -6,7 +6,7 @@ import time
 CLIENT_ID = '64453869c608479c957d4d9e24cba22e'
 CLIENT_SECRET = 'fc4c65b49a644ed8bd808fdf10e14c43'
 REDIRECT_URI = 'http://localhost:8888/callback'
-PLAYLIST_ID = '6tVzHfLDlIrzpSYRimBVK5'
+PLAYLIST_ID = '7kUmc19fpDCjNo1YEuZHbI'
 SCOPE = 'playlist-modify-public'
 
 def authenticate_spotify():
@@ -26,11 +26,7 @@ def add_tracks_to_playlist(sp, playlist_id, tracks):
 
         # Fetch current tracks in playlist
         playlist_content = sp.playlist_tracks(playlist_id)
-        if playlist_content:
-            tracks_in_playlist = [item['track']['uri'] for item in playlist_content['items']]
-            print(f"Current tracks in playlist {playlist_id}: {tracks_in_playlist}")
-        else:
-            print(f"No tracks found in playlist {playlist_id}")
+        print(playlist_content)
 
     except spotipy.SpotifyException as e:
         print(f"Spotify exception occurred: {e}")
@@ -40,8 +36,7 @@ def add_tracks_to_playlist(sp, playlist_id, tracks):
 if __name__ == "__main__":
     # List of track URIs to add
     tracks_to_add = [
-        'spotify:track:0Y5tJX1MQlPlqiwlOH1tJY',
-        'spotify:track:1RyvyyTE3xzB2ZywiAwp0i'
+        'spotify:track:6sy3LkhNFjJWlaeSMNwQ62', 'spotify:track:7BKLCZ1jbUBVqRi2FVlTVw'
         # Add more tracks as needed
     ]
 

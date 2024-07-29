@@ -111,6 +111,8 @@ function displayPlaylists(playlists) {
             const clusterNumber = this.getAttribute('data-cluster');
             console.log(`Button for cluster ${clusterNumber} clicked`);
             // Call your function with the cluster number
+            console.log(playlists[clusterNumber])
+
             showModal(clusterNumber, playlists);
         });
     });
@@ -120,12 +122,12 @@ function displayPlaylists(playlists) {
 function showModal(clusterNumber, playlists) {
     $('#overlay').removeClass('hidden-splitter').addClass('show');
     $('#playlistName').val('');
-    
     $('#confirmButton').off('click').on('click', function() {
-        const playlistName = $('#playlistName').val();
-        console.log(`Confirmed playlist name: ${playlistName} for cluster ${clusterNumber}`);
-        addClusterToPlaylist(playlistName,clusterNumber, playlists);
-        hideModal();
+    const playlistName = $('#playlistName').val();
+    console.log(`Confirmed playlist name: ${playlistName} for cluster ${clusterNumber}`);
+    createPlaylistFromCluster(playlistName,clusterNumber, playlists);
+
+    hideModal();
         // Add additional functionality for confirming the playlist name here
     });
 
@@ -133,28 +135,75 @@ function showModal(clusterNumber, playlists) {
         hideModal();
     });
 }
-function addClusterToPlaylist(playlistName, clusterNumber, clustersData){
-    const url = '/addplaylist';
-    
-    // Prepare the data to send
-    ;
+function createPlaylistFromCluster(playlistName, clusterNumber, clustersData) {
+    const url = '/createplaylist';
 
-    // Make the POST request
-    $.ajax({
-        url: url,
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({"playlistName": playlistName, "clusterNumber": clusterNumber, 'clusters': clustersData}),
-        success: function(result) {
-            console.log('Success:', result);
-            // Handle success (e.g., update UI, show a message, etc.)
+    // Prepare the data to send
+    const data = {
+        "playlistName": playlistName,
+        "clusterNumber": clusterNumber,
+        "clusters": clustersData
+    };
+
+    // Make the POST request using fetch
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
         },
-        error: function(error) {
-            console.error('Error:', error);
-            // Handle error
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            console.log('Success:', result);
+            const { playlistId, token } = result;
+            console.log(`Playlist ID: ${playlistId}, Token: ${token}`);
+            // Call the function to add tracks to this new playlist using the obtained playlistId and token
+            const cluster = clustersData[clusterNumber];
+            const trackUris = cluster.map(track => `spotify:track:${track.id}`);
+            addTracksToPlaylist(playlistId, trackUris, token);
+        } else {
+            console.error('Error:', result.error);
         }
-    });
+    })
+    .catch(error => console.error('Error:', error));
 }
+
+function addTracksToPlaylist(playlistId, trackUris, token) {
+    console.log(playlistId)
+    const batchSize = 90;
+    const urlTemplate = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
+
+    for (let i = 0; i < trackUris.length; i += batchSize) {
+        const batch = trackUris.slice(i, i + batchSize);
+
+        fetch(urlTemplate, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ uris: batch })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.snapshot_id) {
+                console.log('Batch added successfully:', result);
+            } else {
+                console.error('Error adding batch:', result);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+
+
+function hideModal() {
+    $('#overlay').removeClass('show').addClass('hidden-splitter');
+}
+
 
 // Hide the modal
 function hideModal() {
