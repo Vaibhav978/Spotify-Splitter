@@ -6,7 +6,7 @@ import time
 CLIENT_ID = '64453869c608479c957d4d9e24cba22e'
 CLIENT_SECRET = 'fc4c65b49a644ed8bd808fdf10e14c43'
 REDIRECT_URI = 'http://localhost:8888/callback'
-PLAYLIST_ID = '244IMeUr2Jtz0NDSvn87qV'
+PLAYLIST_ID = '1TZm3XxbNtsffKk2F5RVsZ'
 SCOPE = 'playlist-modify-public'
 
 def authenticate_spotify():
@@ -20,7 +20,7 @@ def add_tracks_to_playlist(sp, playlist_id, tracks):
     try:
         # Add tracks to playlist
         for i in range(0, len(tracks), 100):
-            response = sp.playlist_add_items(playlist_id, tracks[i:i+100])
+            response = sp.playlist_add_items(playlist_id, tracks[i:i+100],)
             print(f"Added {len(tracks[i:i+100])} tracks to playlist. Response: {response}")
             time.sleep(1)  # To avoid hitting rate limits
 
@@ -35,12 +35,6 @@ def add_tracks_to_playlist(sp, playlist_id, tracks):
 
 if __name__ == "__main__":
     # List of track URIs to add
-    tracks_to_add = [
-        'spotify:track:6sy3LkhNFjJWlaeSMNwQ62', 'spotify:track:7BKLCZ1jbUBVqRi2FVlTVw', 'spotify:track:6DCZcSspjsKoFjzjrWoCdn',
-        'spotify:track:7EQGXaVSyEDsCWKmUcfpLk', 'spotify:track:69uxyAqqPIsUyTO8txoP2M','spotify:track:12WCXE6DlRcCn2rEShNepL',
-        'spotify:track:06HL4z0CvFAxyc27GXpf02','spotify:track:0rZp7G3gIH6WkyeXbrZnGi',
-        # Add more tracks as needed
-    ]
-
+    tracks_to_add = ['spotify:track:1dIWPXMX4kRHj6Dt2DStUQ',] 
     sp = authenticate_spotify()
     add_tracks_to_playlist(sp, PLAYLIST_ID, tracks_to_add)

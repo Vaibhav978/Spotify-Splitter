@@ -158,7 +158,7 @@ async def construct_tracks_json(sp):
                 album = track['album']['name']
                 artists = [artist['name'] for artist in track['artists']]
                 artist_ids = [artist['id'] for artist in track['artists']]
-                
+                track_id = track['id']
                 # Collect genres for the track from artist_genres_dict
                 genres = set()
                 for artist_id in artist_ids:
@@ -168,7 +168,7 @@ async def construct_tracks_json(sp):
                 if feature:
                     track_info = {
                         "name": track_name,
-                        "id": artist_id,
+                        "id": track_id,
                         "album": album,
                         "artists": list(artists),
                         "acousticness": feature.get('acousticness'),
