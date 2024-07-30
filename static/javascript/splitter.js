@@ -49,7 +49,7 @@ function updateTracks() {
         })
         .catch(error => console.error('Error fetching tracks:', error));
 }
-
+ 
 function displayPlaylists(playlists) {
     console.log("DATA");
     console.log(playlists);

@@ -74,7 +74,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     artists_encoded = mlb_artists.transform(df['artists'])
     artists_encoded = artists_encoded.astype(float)
-    artists_encoded *= 3  # Adjust the weight of artist features if needed
+    artists_encoded *= 4 # Adjust the weight of artist features if needed
 
     # Combine normalized features with one-hot encoded genres and artists
     X_combined = np.hstack((X_transformed, genres_encoded, artists_encoded))
@@ -193,4 +193,4 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     return clusters_json
 
 spotify_id = 'd722jkq02u40mfghknaczltac'
-cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+#cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
