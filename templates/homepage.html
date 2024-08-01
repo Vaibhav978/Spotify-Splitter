@@ -4,15 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"></head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
 <body>
     <div class="container">
         <h1 id="displayName" class="hidden">Welcome {{display_name}}!</h1>
-        <p id="instructions" class="hidden">Enter an Artist Name to get their most popular albums</p>
-        <a href="http://127.0.0.1:5002/user" id="artistButton" class="btn hidden">Find Artists Top Albums</a>
-        <a href="http://127.0.0.1:5002/splitter" id="splitterButton" class="btn hidden">Spotify Splitter</a>
-        <a href="http://127.0.0.1:5002/logout">Logout</a>
+        <p id="instructions" class="hidden">Choose From One of the Following Features</p>
 
+        <div class="features-container">
+            <div id="miscFeatures"> 
+                <label for="artistButton" id="artistLabel">Misc. Features:</label>
+                <a href="http://127.0.0.1:5002/user" id="artistButton" class="btn hidden">Find Artists Top Albums</a>
+            </div>
+
+            <div id="mainFeatures">
+                <label for="splitterButton" id="mainFeaturesLabel">Main Features:</label>
+                <a href="http://127.0.0.1:5002/splitter" id="splitterButton" class="btn main-feature hidden">Spotify Splitter</a>
+            </div>
+        </div>
     </div>
     <script>
         window.addEventListener('DOMContentLoaded', (event) => {

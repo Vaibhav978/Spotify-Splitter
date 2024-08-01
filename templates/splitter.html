@@ -10,18 +10,25 @@
 <body>
     <div class="header">
         <h1>Spotify Album Splitter</h1>
-        <a href="http://127.0.0.1:5002/homepage" id = "homeButtonSplitter" class="btn back-btn">Back to Home</a>
+        <a href="http://127.0.0.1:5002/homepage" id="homeButtonSplitter" class="btn back-btn">Back to Home</a>
     </div>
     <div>
-        <button class = "btn" id = "updateTracksButton" onclick = "updateTracks()"> Update Your Tracks in The Database.</button>
+        <p>Instructions:</p>
+        <ol>
+            <li>Click "Update Your Tracks in The Database" to refresh your saved tracks from Spotify. Note: This can take time if you have many tracks saved</li>
+            <li>Click "Display Tracks" to view your saved tracks.</li>
+            <li>Click "Split Tracks into Playlists" to divide your saved tracks into multiple playlists based on clustering.</li>
+        </ol>
+    </div>
+    <div>
+        <button class="btn" id="updateTracksButton" onclick="updateTracks()">Update Your Tracks in The Database</button>
         <button class="btn" id="fetchTracksButton" onclick="submitAlbum()">Display Tracks</button>
         <button class="btn" id="fadeButton" onclick="getSplitPlaylists()">Split Tracks into Playlists</button>
-        <select id="num_albums"></select>
     </div>
     <div id="tracks_container">
         <!-- Tracks will be displayed here -->
     </div>
-    <div id="overlay">
+    <div id="overlay" class="hidden-splitter">
         <div id="playlistModal">
             <label for="playlistName" id="playlistLabel">Enter a name for your playlist:</label>
             <input type="text" id="playlistName">

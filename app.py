@@ -130,18 +130,19 @@ def get_user_json_data(token):
         print("Error: Token not available")
         return None
 
-async def construct_tracks_json(sp, user_data):
+async def construct_tracks_json(sp):
     print("Entered construct tracks")
     all_tracks = []
     count = 1
+    user_tracks = sp.current_user_saved_tracks()
     artists_found = set()
 
-    while user_data:
-        track_ids = [item['track']['id'] for item in user_data['items']]
+    while user_tracks:
+        track_ids = [item['track']['id'] for item in user_tracks['items']]
         batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
         
         # Collect all artist IDs
-        for item in user_data['items']:
+        for item in user_tracks['items']:
             track = item['track']
             artist_ids = [artist['id'] for artist in track['artists']]
             artists_found.update(artist_ids)
@@ -151,7 +152,7 @@ async def construct_tracks_json(sp, user_data):
         
         for batch in batched_track_ids:
             features = await get_audio_features_with_retry(sp, batch)
-            for i, item in enumerate(user_data['items']):
+            for i, item in enumerate(user_tracks['items']):
                 track = item['track']
                 track_name = track['name']
                 album = track['album']['name']
@@ -185,8 +186,8 @@ async def construct_tracks_json(sp, user_data):
                     
                     count += 1
                     all_tracks.append(track_info)
-        if user_data['next']:
-            user_data = sp.next(user_data)
+        if user_tracks['next']:
+            user_tracks = sp.next(user_tracks)
         else:
             break
     return all_tracks
@@ -362,16 +363,13 @@ def update_tracks():
         token = session.get('token')
         spotify_id = session.get('spotify_id')
 
-
         if code and (not token or token_expired()):
             token = get_token(code)
             session['token'] = token
 
         if token:
             sp = Spotify(auth=token)
-            tracks = sp.current_user_saved_tracks
-
-            all_tracks = asyncio.run(construct_tracks_json(sp, tracks))
+            all_tracks = asyncio.run(construct_tracks_json(sp))
         
             if all_tracks:
                 user_entry = {
@@ -401,6 +399,12 @@ def update_tracks():
             return jsonify({"error": "No token available or token expired"})
     except Exception:
         return jsonify('error: Your network was too slow, please try again')
+
+    
+    
+def delete_user_by_spotify_id_from_database(spotify_id):
+    users_collection.delete_one({"spotify_id": spotify_id})
+
 
 @app.route("/splittracks", methods = ['GET'])
 def split_tracks():
@@ -439,6 +443,7 @@ def create_playlist():
         cluster = clusters_data.get(cluster_number)
         if not cluster:
             return jsonify({"error": "Invalid cluster number or cluster not found"})
+        spotify_name_list = [track.get('name')for track in cluster if track.get('name')]
         #print(spotify_name_list)
         spotify_id_list = [track.get('id') for track in cluster if track.get('id')]
         if not spotify_id_list:
