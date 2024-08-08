@@ -16,25 +16,25 @@ def authenticate_spotify():
                                                    scope=SCOPE))
     return sp
 
-def add_tracks_to_playlist(sp, playlist_id, tracks):
-    try:
-        # Add tracks to playlist
-        for i in range(0, len(tracks), 100):
-            response = sp.playlist_add_items(playlist_id, tracks[i:i+100],)
-            print(f"Added {len(tracks[i:i+100])} tracks to playlist. Response: {response}")
-            time.sleep(1)  # To avoid hitting rate limits
+# def add_tracks_to_playlist(sp, playlist_id, tracks):
+#     try:
+#         # Add tracks to playlist
+#         for i in range(0, len(tracks), 100):
+#             response = sp.playlist_add_items(playlist_id, tracks[i:i+100],)
+#             print(f"Added {len(tracks[i:i+100])} tracks to playlist. Response: {response}")
+#             time.sleep(1)  # To avoid hitting rate limits
 
-        # Fetch current tracks in playlist
-        playlist_content = sp.playlist_tracks(playlist_id)
-        #print(playlist_content)
+#         # Fetch current tracks in playlist
+#         playlist_content = sp.playlist_tracks(playlist_id)
+#         print(playlist_content)
 
-    except spotipy.SpotifyException as e:
-        print(f"Spotify exception occurred: {e}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+#     except spotipy.SpotifyException as e:
+#         print(f"Spotify exception occurred: {e}")
+#     except Exception as e:
+#         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     # List of track URIs to add
     tracks_to_add = ['spotify:track:1dIWPXMX4kRHj6Dt2DStUQ',] 
     sp = authenticate_spotify()
-    add_tracks_to_playlist(sp, PLAYLIST_ID, tracks_to_add)
+    #add_tracks_to_playlist(sp, PLAYLIST_ID, tracks_to_add)

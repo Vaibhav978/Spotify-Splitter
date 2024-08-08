@@ -1,23 +1,21 @@
-from flask_sqlalchemy import SQLAlchemy
+import certifi
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 
-db = SQLAlchemy()
+def test_mongo_connection(uri):
+    try:
+        # Create the MongoClient with the tlsCAFile parameter pointing to the certifi CA bundle
+        client = MongoClient(uri, tlsCAFile=certifi.where())
+        
+        # Perform a server status command to check the connection
+        client.admin.command('ping')
+        print("MongoDB connection successful!")
+    except ConnectionFailure as e:
+        print(f"MongoDB connection failed: {e}")
 
-class Track(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    album = db.Column(db.String(255), nullable=False)
-    artists = db.Column(db.String(255), nullable=False)
-    popularity = db.Column(db.Integer)
-    acousticness = db.Column(db.Float)
-    danceability = db.Column(db.Float)
-    energy = db.Column(db.Float)
-    instrumentalness = db.Column(db.Float)
-    liveness = db.Column(db.Float)
-    loudness = db.Column(db.Float)
-    speechiness = db.Column(db.Float)
-    tempo = db.Column(db.Float)
-    valence = db.Column(db.Float)
-    genres = db.Column(db.String(255))
-
-    def __repr__(self):
-        return f"<Track {self.name}>"
+if __name__ == "__main__":
+    # Define the MongoDB connection URI
+    uri = "mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority"
+    
+    # Test the connection
+    test_mongo_connection(uri)

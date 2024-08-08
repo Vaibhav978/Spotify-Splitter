@@ -17,6 +17,7 @@ import subprocess
 import logging
 import signal
 from add_to_playlist import *
+import certifi
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
@@ -26,11 +27,14 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
-
+uri = "mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority"
 # MongoDB connection
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient(uri, tlsCAFile=certifi.where())
+
+# Access the database and collection
 db = client.spotify_db
 users_collection = db.users
+
 
 
 
@@ -453,7 +457,6 @@ def create_playlist():
         spotify_ids_uris = [f'spotify:track:{track_id}' for track_id in spotify_id_list]
         # Remove duplicates
         spotify_ids_uris = list(set(spotify_ids_uris))
-        print(spotify_ids_uris)
 
         # Create the playlist
         playlist = sp.user_playlist_create(user=spotify_id, name=playlist_name, public=True)
@@ -461,7 +464,7 @@ def create_playlist():
         print(playlist_id)
         logging.debug(f"Created playlist with ID: {playlist_id}")
         time.sleep(4)
-        add_tracks_to_playlist_caller(spotify_ids_uris, playlist_id)
+        add_tracks_to_playlist(spotify_ids_uris, playlist_id)
 
         # Verify playlist contents
 
@@ -470,12 +473,28 @@ def create_playlist():
         return jsonify({"error": "No token available or token expired"})
 
 
-def add_tracks_to_playlist_caller(track_ids, playlist_id):
+
+def add_tracks_to_playlist( playlist_id, tracks):
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
                                                    client_secret=CLIENT_SECRET,
                                                    redirect_uri=SPOTIFY_REDIRECT_URI,
                                                    scope='playlist-modify-public'))
-    add_tracks_to_playlist(sp, playlist_id, track_ids)
+    print(len(tracks))
+    try:
+        # Add tracks to playlist
+        for i in range(0, len(tracks), 100):
+            response = sp.playlist_add_items(playlist_id, tracks[i:i+100],)
+            print(f"Added {len(tracks[i:i+100])} tracks to playlist. Response: {response}")
+            time.sleep(1)  # To avoid hitting rate limits
+
+        # Fetch current tracks in playlist
+        playlist_content = sp.playlist_tracks(playlist_id)
+        print(playlist_content)
+
+    except spotipy.SpotifyException as e:
+        print(f"Spotify exception occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 #this gives an error due to the fact the add isn't working correctly.
 def verify_playlist_contents(token, playlist_id):
