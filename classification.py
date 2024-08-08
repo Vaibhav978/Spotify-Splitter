@@ -9,9 +9,11 @@ from pymongo import MongoClient
 import os
 from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
+import certifi
 
+uri = "mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority"
 # MongoDB connection
-client = MongoClient("mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority")
+client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client.spotify_db
 users_collection = db.users
 
