@@ -11,7 +11,7 @@ from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
 
 # MongoDB connection
-client = MongoClient('mongodb://localhost:27017/')
+client = MongoClient("mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority")
 db = client.spotify_db
 users_collection = db.users
 
