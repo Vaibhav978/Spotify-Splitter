@@ -21,7 +21,11 @@ import certifi
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
-SPOTIFY_REDIRECT_URI = 'http://127.0.0.1:5002/homepage'
+if os.getenv("FLASK_ENV") == "production":
+    SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI_PRODUCTION", "https://spotify-helper.onrender.com/homepage")
+else:
+    SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI_LOCAL", "http://127.0.0.1:5002/homepage")
+
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
