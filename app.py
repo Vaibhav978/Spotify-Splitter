@@ -27,7 +27,7 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
-uri = "mongodb+srv://vibhusingh925:e*!*sWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority"
+uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority&tls=true"
 # MongoDB connection
 client = MongoClient(uri, tlsCAFile=certifi.where())
 
