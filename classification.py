@@ -11,7 +11,7 @@ from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
 import certifi
 
-uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/?retryWrites=true&w=majority&tls=true"
+uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
 # MongoDB connection
 client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client.spotify_db
