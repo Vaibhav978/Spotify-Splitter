@@ -242,8 +242,11 @@ def renderWebsite():
 
 @app.route('/login')
 def login():
+    print(SPOTIFY_REDIRECT_URI)
     scopes = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
     spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
+    print("SPotify auth_url")
+    print(spotify_auth_url)
     return redirect(spotify_auth_url)
 
 @app.route("/user")
