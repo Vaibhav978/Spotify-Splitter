@@ -543,4 +543,4 @@ def kill_process_on_port(port):
 if __name__ == '__main__':
     kill_process_on_port(5002)
     time.sleep(2)
-    app.run(port=5002)
+    app.run(host = '0.0.0.0', port=5002)
