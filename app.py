@@ -21,11 +21,7 @@ import certifi
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
-SPOTIFY_REDIRECT_URI = ""
-if os.getenv("FLASK_ENV") == "production":
-    SPOTIFY_REDIRECT_URI =  "https://spotify-helper.onrender.com/homepage"
-else:
-    SPOTIFY_REDIRECT_URI ="http://127.0.0.1:5002/homepage"
+
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -34,6 +30,12 @@ SCOPE = "user-read-private user-read-email user-library-read playlist-modify-pub
 BASE_URL = "https://api.spotify.com/v1"
 uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
 
+
+SPOTIFY_REDIRECT_URI = ""
+if os.getenv("FLASK_ENV") == "production":
+    SPOTIFY_REDIRECT_URI ="https://spotify-helper.onrender.com/homepage"
+else:
+    SPOTIFY_REDIRECT_URI =  "http://127.0.0.1:5002/homepage"
 # MongoDB connection
 client = MongoClient(uri, tlsCAFile=certifi.where())
 
@@ -255,6 +257,7 @@ def login():
 
 @app.route("/user")
 def render_user_page():
+    environment = os.getenv("FLASK_ENVIRONMENT")
     code = request.args.get("code")
     token = session.get('token')
 
@@ -270,7 +273,7 @@ def render_user_page():
     else:
         display_name = session.get('display_name', '')
 
-    return render_template('user.html', display_name=display_name)
+    return render_template('user.html', display_name=display_name, environment = environment)
 
 @app.route("/search_artist", methods=['POST'])
 def get_artist_album():
@@ -293,6 +296,7 @@ def get_artist_album():
 
 @app.route("/splitter")
 def render_splitter():
+    environment = os.getenv("FLASK_ENVIRONMENT")
     code = request.args.get("code")
     token = session.get('token')
 
@@ -308,10 +312,11 @@ def render_splitter():
     else:
         display_name = session.get('display_name', '')
 
-    return render_template('splitter.html', display_name=display_name)
+    return render_template('splitter.html', display_name=display_name, environment = environment)
 
 @app.route("/homepage")
 def render_homepage():
+    environment = os.getenv("FLASK_ENV")
     code = request.args.get("code")
     token = session.get('token')
 
@@ -328,7 +333,7 @@ def render_homepage():
     else:
         display_name = session.get('display_name', '')
 
-    return render_template('homepage.html', display_name=display_name)
+    return render_template('homepage.html', display_name=display_name, environment = environment)
 
 @app.route("/gettracks", methods=['GET'])
 def get_tracks():

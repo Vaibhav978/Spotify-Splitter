@@ -14,12 +14,12 @@
         <div class="features-container">
             <div id="miscFeatures"> 
                 <label for="artistButton" id="artistLabel">Misc. Features:</label>
-                <a href="http://127.0.0.1:5002/user" id="artistButton" class="btn hidden">Find Artists Top Albums</a>
+                <a href="{% if environment == 'production' %}https://spotify-helper.onrender.com/user{% else %}http://127.0.0.1:5002/user{% endif %}" id="artistButton" class="btn hidden">Find Artists Top Albums</a>
             </div>
 
             <div id="mainFeatures">
                 <label for="splitterButton" id="mainFeaturesLabel">Main Features:</label>
-                <a href="http://127.0.0.1:5002/splitter" id="splitterButton" class="btn main-feature hidden">Spotify Splitter</a>
+                <a href="{% if environment == 'production' %}https://spotify-helper.onrender.com/splitter{% else %}http://127.0.0.1:5002/splitter{% endif %}" id="splitterButton" class="btn main-feature hidden">Spotify Splitter</a>
             </div>
         </div>
     </div>

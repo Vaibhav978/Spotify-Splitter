@@ -10,7 +10,7 @@
 <body>
     <div class="header">
         <h1>Spotify Album Splitter</h1>
-        <a href="http://127.0.0.1:5002/homepage" id="homeButtonSplitter" class="btn back-btn">Back to Home</a>
+        <a href="{% if environment == 'production' %}https://spotify-helper.onrender.com/homepage{% else %}http://127.0.0.1:5002/homepage{% endif %}" id="artistButton" class="btn">Go Back to Home</a>
     </div>
     <div>
         <p>Instructions:</p>
