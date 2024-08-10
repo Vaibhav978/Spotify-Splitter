@@ -21,10 +21,11 @@ import certifi
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(24)
+SPOTIFY_REDIRECT_URI = ""
 if os.getenv("FLASK_ENV") == "production":
-    SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI_PRODUCTION", "https://spotify-helper.onrender.com/homepage")
+    SPOTIFY_REDIRECT_URI =  "https://spotify-helper.onrender.com/homepage"
 else:
-    SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI_LOCAL", "http://127.0.0.1:5002/homepage")
+    SPOTIFY_REDIRECT_URI ="http://127.0.0.1:5002/homepage"
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
@@ -242,11 +243,14 @@ def renderWebsite():
 
 @app.route('/login')
 def login():
-    print(SPOTIFY_REDIRECT_URI)
     scopes = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
-    spotify_auth_url = f"https://accounts.spotify.com/authorize?client_id={CLIENT_ID}&response_type=code&redirect_uri={SPOTIFY_REDIRECT_URI}&scope={scopes.replace(' ', '%20')}"
-    print("SPotify auth_url")
-    print(spotify_auth_url)
+    spotify_auth_url = (
+        f"https://accounts.spotify.com/authorize?"
+        f"client_id={CLIENT_ID}&response_type=code&"
+        f"redirect_uri={SPOTIFY_REDIRECT_URI}&"
+        f"scope={scopes.replace(' ', '%20')}"
+    )
+    print("Spotify auth URL:", spotify_auth_url)
     return redirect(spotify_auth_url)
 
 @app.route("/user")
