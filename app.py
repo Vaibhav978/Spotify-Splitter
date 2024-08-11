@@ -133,7 +133,9 @@ def get_user_json_data(token):
             "Authorization": f"Bearer {token}"
         }
         response = requests.get(url, headers=headers)
+        user_data = response.json()
         if response.status_code == 200:
+            session['display_name'] = user_data.get('Display_name')
             return response.json()
         else:
             print("Error:", response.status_code)
@@ -258,14 +260,12 @@ def login():
 @app.route("/user")
 def render_user_page():
     environment = os.getenv("FLASK_ENVIRONMENT")
-    code = request.args.get("code")
     token = session.get('token')
-
-    if code and (not token or token_expired()):
-        token = get_token(code)
-        session['token'] = token
-        
-    return render_template('user.html',  environment = environment)
+    if not token or token_expired():
+        token = refresh_token()
+    get_user_json_data(token)
+    display_name = session.get('display_name')
+    return render_template('user.html', display_name = display_name, environment = environment)
 
 @app.route("/search_artist", methods=['POST'])
 def get_artist_album():
