@@ -304,15 +304,9 @@ def render_splitter():
         token = get_token(code)
         session['token'] = token
 
-    if token:
-        user_data = get_user_json_data(token)
-        display_name = user_data.get('display_name', '')
-        session['spotify_id'] = user_data.get('id')
-        session['display_name'] = display_name
-    else:
-        display_name = session.get('display_name', '')
 
-    return render_template('splitter.html', display_name=display_name, environment = environment)
+
+    return render_template('splitter.html', environment = environment)
 
 @app.route("/homepage")
 def render_homepage():
