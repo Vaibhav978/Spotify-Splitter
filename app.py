@@ -264,16 +264,8 @@ def render_user_page():
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-
-    if token:
-        user_data = get_user_json_data(token)
-        session['spotify_id'] = user_data.get('id')
-        display_name = user_data.get('display_name', '')
-        session['display_name'] = display_name
-    else:
-        display_name = session.get('display_name', '')
-
-    return render_template('user.html', display_name=display_name, environment = environment)
+        
+    return render_template('user.html',  environment = environment)
 
 @app.route("/search_artist", methods=['POST'])
 def get_artist_album():
