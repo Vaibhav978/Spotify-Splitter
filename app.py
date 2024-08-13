@@ -127,6 +127,8 @@ def get_token(code):
     return token
 
 def get_user_json_data(token):
+    if not token:
+        token = refresh_token()
     if token:
         url = "https://api.spotify.com/v1/me"
         headers = {
@@ -309,7 +311,8 @@ def render_homepage():
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-
+    if not token:
+        token = refresh_token()
     if token:
         user_data = get_user_json_data(token)
         session['spotify_id'] = user_data.get('id')
