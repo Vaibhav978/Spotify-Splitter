@@ -127,17 +127,13 @@ def get_token(code):
     return token
 
 def get_user_json_data(token):
-    if not token:
-        token = refresh_token()
     if token:
         url = "https://api.spotify.com/v1/me"
         headers = {
             "Authorization": f"Bearer {token}"
         }
         response = requests.get(url, headers=headers)
-        user_data = response.json()
         if response.status_code == 200:
-            session['display_name'] = user_data.get('Display_name')
             return response.json()
         else:
             print("Error:", response.status_code)
@@ -262,12 +258,15 @@ def login():
 @app.route("/user")
 def render_user_page():
     environment = os.getenv("FLASK_ENVIRONMENT")
+    code = request.args.get("code")
     token = session.get('token')
-    if not token or token_expired():
-        token = refresh_token()
-    get_user_json_data(token)
+
+    if code and (not token or token_expired()):
+        token = get_token(code)
+        session['token'] = token
     display_name = session.get('display_name')
-    return render_template('user.html', display_name = display_name, environment = environment)
+        
+    return render_template('user.html',  environment = environment, display_name = display_name)
 
 @app.route("/search_artist", methods=['POST'])
 def get_artist_album():
@@ -311,8 +310,7 @@ def render_homepage():
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-    if not token:
-        token = refresh_token()
+
     if token:
         user_data = get_user_json_data(token)
         session['spotify_id'] = user_data.get('id')
