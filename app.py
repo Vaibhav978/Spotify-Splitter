@@ -143,16 +143,25 @@ def get_user_json_data(token):
         return None
 
 async def construct_tracks_json(sp):
-    print("Entered construct tracks")
-    all_tracks = []
+    print("Entered construct_tracks_json")
     count = 1
     user_tracks = sp.current_user_saved_tracks()
     artists_found = set()
+    spotify_id = session.get('spotify_id')
+    users_collection.update_one(
+        {"spotify_id": spotify_id},
+        {"$set": {"tracks": []}},  # Set tracks to an empty array
+        upsert=True
+    )
 
     while user_tracks:
+        # Fetch existing user entry from the database for each iteration
+        user_entry = users_collection.find_one({"spotify_id": spotify_id})
+        existing_tracks = user_entry['tracks'] if user_entry and 'tracks' in user_entry else []
+
         track_ids = [item['track']['id'] for item in user_tracks['items']]
         batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
-        
+
         # Collect all artist IDs
         for item in user_tracks['items']:
             track = item['track']
@@ -161,8 +170,10 @@ async def construct_tracks_json(sp):
 
         # Fetch genres for all unique artist IDs
         artist_genres_dict = await get_genres_with_retry(sp, list(artists_found))
-        
+
         for batch in batched_track_ids:
+            all_tracks = []
+
             features = await get_audio_features_with_retry(sp, batch)
             for i, item in enumerate(user_tracks['items']):
                 track = item['track']
@@ -171,11 +182,12 @@ async def construct_tracks_json(sp):
                 artists = [artist['name'] for artist in track['artists']]
                 artist_ids = [artist['id'] for artist in track['artists']]
                 track_id = track['id']
+
                 # Collect genres for the track from artist_genres_dict
                 genres = set()
                 for artist_id in artist_ids:
                     genres.update(artist_genres_dict.get(artist_id, []))
-                
+
                 feature = features[i]
                 if feature:
                     track_info = {
@@ -195,14 +207,25 @@ async def construct_tracks_json(sp):
                         "genres": list(genres),  # Convert set to list for JSON serialization
                     }
                     print(f"Track {count}: {track_info['name']} - Genres: {track_info['genres']}")
-                    
+
                     count += 1
                     all_tracks.append(track_info)
+
+            # Combine existing tracks with the new ones from this batch
+            existing_tracks.extend(all_tracks)
+
+            # Update the database with the combined tracks
+            users_collection.update_one(
+                {"spotify_id": spotify_id},
+                {"$set": {"tracks": existing_tracks}},
+                upsert=True
+            )
+
         if user_tracks['next']:
             user_tracks = sp.next(user_tracks)
         else:
             break
-    return all_tracks
+
 
 async def get_audio_features_with_retry(sp, track_ids, retries=5, backoff_factor=2):
     for i in range(retries):
@@ -258,7 +281,7 @@ def login():
 @app.route("/user")
 def render_user_page():
     environment = os.getenv("FLASK_ENVIRONMENT")
-    code = request.args.get("code")
+    code = request.args.get("code") 
     token = session.get('token')
 
     if code and (not token or token_expired()):
@@ -336,18 +359,6 @@ def get_tracks():
             user_data = get_user_data(spotify_id)
             return jsonify(user_data)
         else:
-            # sp = Spotify(auth=token)
-            # all_tracks = asyncio.run(construct_tracks_json(sp))
-            # if all_tracks:
-            #     user_entry = {
-            #         "spotify_id": spotify_id,
-            #         "tracks": all_tracks
-            #     }
-            #     user_entry.pop('_id',None)
-            #     # Insert the new user entry into the database
-            #     users_collection.insert_one(user_entry)
-            #     return jsonify(user_entry)
-        
             # else:
             return jsonify({"error": "No User Found, please add tracks to the database first"})
     else:
@@ -377,36 +388,25 @@ def update_tracks():
 
         if token:
             sp = Spotify(auth=token)
-            all_tracks = asyncio.run(construct_tracks_json(sp))
-        
-            if all_tracks:
-                user_entry = {
-                    "spotify_id": spotify_id,
-                    "tracks": all_tracks
-                }
+            # Call construct_tracks_json to save tracks to the database
+            asyncio.run(construct_tracks_json(sp))
+            
+            # Retrieve the updated user entry from the database
+            user_entry = users_collection.find_one({"spotify_id": spotify_id})
+
+            if user_entry:
+                # Return the updated user entry with all tracks
                 user_entry.pop('_id', None)
 
-            # Update or insert (upsert=True) the document
-                result = users_collection.update_one(
-                    {"spotify_id": spotify_id},
-                    {"$set": user_entry},
-                    upsert=True
-                )
-
-                if result.upserted_id:
-                    user_entry["_id"] = str(result.upserted_id)
-                else:
-                    user_entry.pop("_id", None)
-            
-                return jsonify(user_entry)
-
+                return jsonify(user_entry)  
             else:
-                return jsonify({"error": "No tracks found"})
+                return jsonify({"error": "No tracks found and no existing user entry in the database"})
     
         else:
             return jsonify({"error": "No token available or token expired"})
-    except Exception:
-        return jsonify('error: Your network was too slow, please try again')
+    except Exception as e:
+        return jsonify({'error': f'Your network was too slow, please try again. Error: {str(e)}'})
+
 
     
     

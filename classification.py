@@ -195,4 +195,4 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     return clusters_json
 
 spotify_id = 'd722jkq02u40mfghknaczltac'
-cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+#cluster_tracks_with_visualization(spotify_id, load_existing_model=True)

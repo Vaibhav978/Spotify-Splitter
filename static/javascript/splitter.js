@@ -286,6 +286,10 @@ function showModal(clusterNumber, playlists) {
             const message = document.createElement('h3');
             message.textContent = data.error;
             container.appendChild(message);
+        } else if (!data.tracks || data.tracks.length === 0) {  // Check if tracks are empty
+            const message = document.createElement('h3');
+            message.textContent = "No tracks found";
+            container.appendChild(message);
         } else {
             const tracks = data.tracks;
             const header = document.createElement('h3');
