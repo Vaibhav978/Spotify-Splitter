@@ -280,7 +280,7 @@ def login():
 
 @app.route("/user")
 def render_user_page():
-    environment = os.getenv("FLASK_ENVIRONMENT")
+    environment = os.getenv("FLASK_ENV")
     code = request.args.get("code") 
     token = session.get('token')
 
@@ -312,7 +312,7 @@ def get_artist_album():
 
 @app.route("/splitter")
 def render_splitter():
-    environment = os.getenv("FLASK_ENVIRONMENT")
+    environment = os.getenv("FLASK_ENV")
     code = request.args.get("code")
     token = session.get('token')
 
