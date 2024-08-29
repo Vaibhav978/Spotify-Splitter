@@ -10,7 +10,7 @@
     <div class="container">
         <h1 id="displayName" class="hidden">Welcome {{ display_name }}!</h1>
         <p id="instructions" class="hidden">Enter an Artist Name to get their most popular albums</p>
-        <a href="{% if environment == 'production' %}https://spotify-helper.onrender.com/homepage{% else %}http://127.0.0.1:5002/homepage{% endif %}" id="artistButton" class="btn">Go Back to Home</a>
+        <a href="{% if environment == 'production' %}https://spotify-splitter.elasticbeanstalk.com/homepage{% else %}http://127.0.0.1:5002/homepage{% endif %}" id="artistButton" class="btn">Go Back to Home</a>
         <form id="searchArtist">
             <label for="artist_name" id="artistLabel" class="hidden">Artist Name:</label>
             <input type="text" id="artist_name" class="hidden" maxlength="50" name="artist_name" required>

@@ -100,7 +100,7 @@ function updateTracks() {
 
     // Make the fadeButton, num_albums, and tracks_container invisible and disable them
     hideElementsWhenGettingInformation()
-
+    showSpinner()
     fetch('/updatetracks')
         .then(response => {
             console.log(response.json)
@@ -110,14 +110,16 @@ function updateTracks() {
             console.log(data)
             displayTracks(data);
         })
-        .catch(error => console.error('Error fetching tracks:', error));
+        .catch(error => console.error('Error fetching tracks:', error))
+        .then(() => showElements()).finally(() => hideSpinner());
+        
 }
 
 function displayPlaylists(playlists) {
     console.log("DATA");
     console.log(playlists);
     const container = document.getElementById('tracks_container');
-    hideElementsWhenGettingInformation();
+    //hideElementsWhenGettingInformation();
 
     container.innerHTML = '';  // Clear existing content
 
@@ -159,6 +161,7 @@ function displayPlaylists(playlists) {
 
         clusterContainer.appendChild(dropdown);
         currentRow.appendChild(clusterContainer);
+        showElements();
     });
 
     container.appendChild(columnsContainer);
@@ -179,7 +182,14 @@ function displayPlaylists(playlists) {
         });
     });
 }
+function showSpinner() {
+    $('#spinner').removeClass('hidden-spinner');
+}
 
+// Function to hide the spinner
+function hideSpinner() {
+    $('#spinner').addClass('hidden-spinner');
+}
 // Your function to be called with the cluster number
 function showModal(clusterNumber, playlists) {
     $('#overlay').removeClass('hidden-splitter').addClass('show');
@@ -273,8 +283,24 @@ function showModal(clusterNumber, playlists) {
     }
     
     function hideElementsWhenGettingInformation() {
-        $('#artist_name, #searchResults, #submitButton').css('opacity', 0).fadeTo(0, 0);
-        $('#fadeButton').prop('disabled', true);
+        console.log("Hiding elements...");
+        
+        // Hiding buttons and the instructions
+        $('#updateTracksButton').fadeOut(1000);
+        $('#fetchTracksButton').fadeOut(1000);
+        $('#fadeButton').fadeOut(1000);
+    
+        $('#fadeButton').prop('disabled', true); // Disable the fade button
+    }
+    function showElements() {
+        console.log('SHOWING ELEMENTS');
+    
+        // Ensure elements are visible before fading in (in case they were set to display: none)
+        $('#updateTracksButton').css('display', 'block').fadeTo(1000, 1);
+        $('#fetchTracksButton').css('display', 'block').fadeTo(1000, 1);
+        $('#fadeButton').css('display', 'block').fadeTo(1000, 1);
+        
+        $('#fadeButton').prop('disabled', false); // Enable the fade button
     }
     
     function displayTracks(data) {

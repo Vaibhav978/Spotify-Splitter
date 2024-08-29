@@ -140,7 +140,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     min_cluster_size = 10  # Define your threshold
 
     iteration = 1
-    while True:
+    while True and iteration < 50:
         small_clusters = cluster_counts[cluster_counts < min_cluster_size].index.tolist()
         if len(small_clusters) == 0:
             break

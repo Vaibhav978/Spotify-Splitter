@@ -1,0 +1,20 @@
+# Exclude virtual environments
+myenv/
+venv/
+
+# Exclude bytecode
+*.pyc
+__pycache__/
+
+# Exclude logs and temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Exclude version control folders
+.git/
+.gitignore
+
+# Exclude IDE/editor config files
+.idea/
+*.iml

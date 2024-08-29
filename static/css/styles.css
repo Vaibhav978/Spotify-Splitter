@@ -131,17 +131,6 @@ button:hover,
     margin-bottom: 10px;
 }
 
-.hidden {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 1s ease, visibility 1s ease;
-}
-
-.fade-in {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
 /* Track Container Styling */
 #tracks_container {
     display: flex;
@@ -150,9 +139,9 @@ button:hover,
     overflow-y: auto;
     max-height: 80vh; /* Adjust as needed */
     padding: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
     background-color: transparent; /* Make background transparent */
     color: #fff; /* Ensure text color is visible */
+    border: none
 }
 
 /* Playlist Row Styling */
@@ -168,13 +157,13 @@ button:hover,
     flex: 1;
     min-width: 300px; /* Set a minimum width to ensure uniformity */
     max-width: 400px; /* Set a maximum width to prevent overflow */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
     border-radius: 5px;
     padding: 10px;
     margin: 5px;
     background-color: rgba(255, 255, 255, 0.1); /* Make background semi-transparent */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     font-size: 0.8rem;
+    border: none
 }
 
 .playlist-container h4 {
@@ -200,16 +189,6 @@ button:hover,
     transform: scale(1.05);
 }
 
-.track-dropdown {
-    width: 100%;
-    height: 100px;
-    overflow-y: scroll;
-    font-size: 0.8rem;
-    background: rgba(255, 255, 255, 0.1); /* Ensure dropdown background matches overall style */
-    color: white; /* Ensure text color is visible */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
-    border-radius: 5px;
-}
 
 /* Columns Container Styling */
 .columns-container {
@@ -217,7 +196,8 @@ button:hover,
     flex-wrap: wrap; /* Ensure columns are wrapped */
     justify-content: center; /* Center the columns */
     width: 100%; /* Ensure the container takes full width */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
+    /* border: 1px solid rgba(255, 255, 255, 0.1); Make border transparent */
+    border: none
 
 }
 .track:hover {
@@ -564,11 +544,11 @@ button:hover,
 #playlistModal {
     background: linear-gradient(to right, #000000, #434343);
     padding: 20px;
-    border-radius: 10px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
+    border:none
 }
 
 #playlistLabel {
@@ -621,3 +601,41 @@ button:hover,
     align-items: center;
 }
 
+/* Spinner container */
+#spinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000; /* Ensure the spinner is on top of other elements */
+}
+
+.spinner-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+}
+
+/* Spinner element */
+.spinner {
+    border: 8px solid #f3f3f3; /* Light grey */
+    border-top: 8px solid #23a027; /* Blue */
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1.5s linear infinite;
+}
+
+/* Hidden class */
+.hidden-spinner {
+    display: none;
+}
+
+/* Animation for the spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
