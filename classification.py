@@ -11,8 +11,8 @@ from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
 import certifi
 
-uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
 # MongoDB connection
+uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
 client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client.spotify_db
 users_collection = db.users
@@ -154,13 +154,43 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
         small_cluster_combined_features = X_combined[df['cluster_label'].isin(small_clusters)]
         distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
 
-        # Map the assignments back to the original cluster labels
-        new_labels = np.array([list(set(range(len(best_kmeans.cluster_centers_))) - set(small_clusters))[int(new_label)] for new_label in assignments])
+        # Remaining valid cluster labels after excluding small clusters
+        remaining_clusters = list(set(range(len(best_kmeans.cluster_centers_))) - set(small_clusters))
 
-        # Assign new cluster labels to these points
-        df.loc[df['cluster_label'].isin(small_clusters), 'cluster_label'] = new_labels
+        # Create new labels based on assignments to the remaining clusters
+        new_labels = np.array([remaining_clusters[int(new_label)] for new_label in assignments if new_label < len(remaining_clusters)])
 
-        
+        # Debug: Check the number of rows and the number of new labels
+        print(f"Number of tracks to reassign: {len(small_cluster_combined_features)}")
+        print(f"Number of new labels generated: {len(new_labels)}")
+
+        # Handle mismatch in number of tracks and labels
+        if len(small_cluster_combined_features) != len(new_labels):
+            print("Error: Mismatch between number of tracks and new labels. Attempting to resolve...")
+            
+            # Identify how many tracks are missing labels
+            missing_count = len(small_cluster_combined_features) - len(new_labels)
+            print(f"Missing {missing_count} new labels. Assigning them manually.")
+            
+            # Recompute distances to large cluster centers for all small-cluster tracks
+            distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
+            
+            # For the missing labels, assign them to the closest valid cluster
+            missing_labels = [remaining_clusters[int(assignment)] for assignment in assignments[:missing_count]]
+            
+            # Append the missing labels to the new_labels array
+            new_labels = np.concatenate([new_labels, missing_labels])
+            
+            print(f"Number of labels after filling missing values: {len(new_labels)}")
+
+        # Now assign the updated labels back to the DataFrame
+        if len(small_cluster_combined_features) == len(new_labels):
+            df.loc[df['cluster_label'].isin(small_clusters), 'cluster_label'] = new_labels
+            print("Successfully reassigned all small cluster tracks.")
+        else:
+            print("Final mismatch detected. Please review the data.")
+            break
+
         # Recompute cluster counts
         cluster_counts = df['cluster_label'].value_counts().sort_index()
 
@@ -173,6 +203,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
         print(f"Cluster {cluster}: {count} tracks")
 
     # Reassign cluster labels to be sequential
+        # Reassign cluster labels to be sequential
     unique_labels = sorted(df['cluster_label'].unique())
     label_map = {old_label: new_label for new_label, old_label in enumerate(unique_labels)}
     df['cluster_label'] = df['cluster_label'].map(label_map)
@@ -194,5 +225,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     print(f"\nClustering completed. Results saved to {output_csv}")
     return clusters_json
 
+# Example usage
 spotify_id = 'd722jkq02u40mfghknaczltac'
-#cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+

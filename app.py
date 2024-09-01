@@ -10,6 +10,7 @@ import asyncio
 import time
 from spotify import *
 import spotipy  
+import pandas as pd
 from classification import *
 from pymongo import MongoClient
 import subprocess
@@ -23,9 +24,7 @@ app.secret_key = os.urandom(24)
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
-print(CLIENT_ID)
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-print(CLIENT_SECRET)
 SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
 uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
@@ -33,7 +32,7 @@ uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb
 
 SPOTIFY_REDIRECT_URI = ""
 if os.getenv("FLASK_ENV") == "production":
-    SPOTIFY_REDIRECT_URI ="https://spotify-splitter.elasticbeanstalk.com/homepage"
+    SPOTIFY_REDIRECT_URI ="https://spotify-helper.onrender.com/homepage"
 else:
     SPOTIFY_REDIRECT_URI =  "http://127.0.0.1:5002/homepage"
 # MongoDB connection
@@ -329,12 +328,11 @@ def render_homepage():
     environment = os.getenv("FLASK_ENV")
     code = request.args.get("code")
     token = session.get('token')
+
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-    if not token:
-        token = refresh_token()
-        print(token)
+
     if token:
         user_data = get_user_json_data(token)
         session['spotify_id'] = user_data.get('id')
@@ -342,7 +340,6 @@ def render_homepage():
         display_name = user_data.get('display_name', '')
         session['display_name'] = display_name
     else:
-        print("Couldn't retrieve token")
         display_name = session.get('display_name', '')
 
     return render_template('homepage.html', display_name=display_name, environment = environment)
@@ -387,8 +384,7 @@ def update_tracks():
         if code and (not token or token_expired()):
             token = get_token(code)
             session['token'] = token
-        if not token:
-            token = refresh_token()
+
         if token:
             sp = Spotify(auth=token)
             # Call construct_tracks_json to save tracks to the database
@@ -410,6 +406,9 @@ def update_tracks():
     except Exception as e:
         return jsonify({'error': f'Your network was too slow, please try again. Error: {str(e)}'})
 
+
+    
+    
 def delete_user_by_spotify_id_from_database(spotify_id):
     users_collection.delete_one({"spotify_id": spotify_id})
 
@@ -468,7 +467,7 @@ def create_playlist():
         print(playlist_id)
         logging.debug(f"Created playlist with ID: {playlist_id}")
         time.sleep(4)
-        add_tracks_to_playlist(playlist_id, spotify_ids_uris)
+        add_tracks_to_playlist(spotify_ids_uris, playlist_id)
 
         # Verify playlist contents
 
@@ -497,6 +496,8 @@ def add_tracks_to_playlist( playlist_id, tracks):
 
     except spotipy.SpotifyException as e:
         print(f"Spotify exception occurred: {e}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 #this gives an error due to the fact the add isn't working correctly.
 def verify_playlist_contents(token, playlist_id):
