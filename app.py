@@ -410,9 +410,6 @@ def update_tracks():
     except Exception as e:
         return jsonify({'error': f'Your network was too slow, please try again. Error: {str(e)}'})
 
-
-    
-    
 def delete_user_by_spotify_id_from_database(spotify_id):
     users_collection.delete_one({"spotify_id": spotify_id})
 
@@ -471,7 +468,7 @@ def create_playlist():
         print(playlist_id)
         logging.debug(f"Created playlist with ID: {playlist_id}")
         time.sleep(4)
-        add_tracks_to_playlist(spotify_ids_uris, playlist_id)
+        add_tracks_to_playlist(playlist_id, spotify_ids_uris)
 
         # Verify playlist contents
 
@@ -500,8 +497,6 @@ def add_tracks_to_playlist( playlist_id, tracks):
 
     except spotipy.SpotifyException as e:
         print(f"Spotify exception occurred: {e}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 #this gives an error due to the fact the add isn't working correctly.
 def verify_playlist_contents(token, playlist_id):
