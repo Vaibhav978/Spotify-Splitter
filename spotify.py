@@ -187,15 +187,3 @@ def make_request_with_retry(url, headers, params=None, retries=5):
         else:
             return response
     return None
-
-
-# # Example Flask endpoint to use the function
-# @app.route('/search_artist', methods=['POST'])
-# def search_artist():
-#     artist_name = request.form.get('artist_name')
-#     num_albums = int(request.form.get('num_albums', 10))  # Default to 10 albums if not specified
-#     albums = get_artist_albums_popularity(artist_name, num_albums)
-#     return albums
-
-# if __name__ == '__main__':
-#     app.run(debug=True, port=5002)

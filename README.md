@@ -1,74 +1,88 @@
-Spotify Playlist Splitter and Recommendation System
-Table of Contents
-Project Overview
-Features
-Tech Stack
-Installation and Setup
-Spotify API Integration
-Data Collection and Processing
-Track Clustering Algorithm
-Personalized Playlist Creation
-Future Enhancements
-License
+# Spotify Playlist Splitter and Recommendation System 🎶
 
-PURPOSE: 
+### Purpose
 
-Whenever I use Spotify and found a song I like I simply added it to my Liked Songs. This resulted me in saving nearly 700 songs to just one playlist. However, I always was frustrated when I wanted to listen to one genre or type of music and then had a different one pop up. Since I am extremely lazy and didn't want to make my own playlists, I created this program to take all the Liked Songs in a User's Playlist, and split it into multiple sonically similar playlists.
+Have you ever found yourself frustrated with having all your favorite songs jumbled into a single playlist? I did too! With nearly 700 songs in my Liked Songs on Spotify, I often wanted to listen to a specific genre or mood but had to skip through unrelated tracks. The solution? This application — designed to automatically split your **Liked Songs** into multiple, sonically similar playlists using advanced machine learning and Spotify’s audio features.
 
-Project Overview
-The Spotify Playlist Splitter and Recommendation System is a web-based application designed to help users analyze and split their Spotify music library into personalized playlists. It uses advanced machine learning techniques to cluster tracks based on audio features, artists, genres, and albums. Additionally, it integrates user feedback to continuously improve playlist recommendations, providing an enhanced and tailored listening experience.
+### Project Overview
 
-Features
-Spotify OAuth 2.0 Authentication: Secure user login using Spotify's OAuth 2.0 system.
-Music Library Analysis: Fetches and analyzes a user's saved tracks using Spotify's API.
-Audio Feature Extraction: Collects audio features like acousticness, danceability, energy, and more to analyze song similarities.
-Track Clustering: Implements a Weighted KNN-Means algorithm for clustering tracks into playlists based on audio features, genres, artists, and albums.
-Playlist Creation: Automatically generates and updates Spotify playlists based on personalized clusters.
-User Feedback Integration: Continuously improves playlist recommendations by integrating user feedback.
-Tech Stack
-Backend: Python (Flask)
-Spotify API: Spotipy library
-Database: MongoDB (for storing user data and track information)
-Frontend: HTML, CSS, JavaScript
-Machine Learning: Weighted KNN-Means algorithm for track clustering
-Environment Management: dotenv
-Installation and Setup
-Clone the Repository:
+The **Spotify Playlist Splitter and Recommendation System** is a web-based tool that helps you analyze your Spotify music library and automatically organize your songs into personalized playlists. It clusters tracks based on their audio features, such as energy, danceability, and acousticness, as well as artists, genres, and albums. With a focus on user customization, it continuously improves playlist recommendations by integrating feedback.
 
-bash
-git clone https://github.com/yourusername/spotify-playlist-splitter.git
-cd spotify-playlist-splitter
-Set Up Environment Variables: Create a .env file in the root directory and add your Spotify API credentials and other required environment variables.
+### Key Features
 
-makefile
-CLIENT_ID=your_spotify_client_id
-CLIENT_SECRET=your_spotify_client_secret
-FLASK_ENV=development
-Install Dependencies: Install the required Python packages using pip.
+- **Spotify OAuth 2.0 Authentication**: Secure login via Spotify’s OAuth system.
+- **Music Library Analysis**: Fetches and analyzes your saved tracks using Spotify’s API.
+- **Audio Feature Extraction**: Extracts detailed audio features like danceability, energy, acousticness, etc., to group similar songs together.
+- **Track Clustering**: Implements a **Weighted KNN-Means algorithm** to intelligently cluster your tracks by features, genres, artists, and albums.
+- **Automated Playlist Creation**: Generates new Spotify playlists directly from the app based on your clusters.
+- **User Feedback Integration**: Uses feedback to continuously improve playlist creation by weighing the user's preferences over time.
 
-bash
-pip install -r requirements.txt
-Run the Application: Ensure MongoDB is running, then start the Flask application.
+### Tech Stack
 
-bash
-python app.py
-Access the Application: Visit http://127.0.0.1:5002 in your browser to start using the Spotify Playlist Splitter.
+- **Backend**: Python (Flask)
+- **Spotify API**: Spotipy library
+- **Database**: MongoDB (stores user data and track information)
+- **Frontend**: HTML, CSS, JavaScript
+- **Machine Learning**: Custom **Weighted KNN-Means** algorithm for clustering
+- **Environment Management**: dotenv (for managing environment variables)
 
-Spotify API Integration
-This project integrates with Spotify's API using the Spotipy library. Through OAuth 2.0, users can securely log in and give the application permission to access their music library. The app fetches user tracks, audio features, and artist details to perform data analysis.
+---
 
-Data Collection and Processing
-Upon logging in, the app retrieves a user's saved tracks and extracts audio features (e.g., acousticness, danceability, energy) using the Spotify API. These features, along with artist and genre data, are stored in MongoDB for further analysis.
+## Spotify API Integration 🎧
 
-Track Clustering Algorithm
-The core of this project is the Weighted KNN-Means Algorithm, which groups tracks into clusters based on their audio features, artists, genres, and albums. The algorithm balances multiple dimensions of similarity, providing highly tailored recommendations. It also incorporates feedback to improve the accuracy of clustering over time.
+This project integrates with Spotify’s API using the **Spotipy** library. By logging in with Spotify’s OAuth 2.0, users can grant the app access to their music library, allowing the app to retrieve saved tracks, audio features, and artist details. These data points form the basis for analyzing and organizing the user's playlists.
 
-Personalized Playlist Creation
-Once tracks are clustered, users can create playlists directly from the app. The playlist creation process fetches the track URIs, creates a new playlist on Spotify, and adds the tracks to the playlist, ensuring a smooth and seamless experience.
+---
 
-Future Enhancements
-Improved Clustering Algorithm: Further refine the algorithm to account for additional user preferences.
-Real-Time Feedback Integration: Allow users to rate individual playlists to dynamically adjust future recommendations.
-Expanded Data Analytics: Provide users with more detailed insights into their music habits (e.g., favorite genres over time).
-License
-This project is licensed under the MIT License.
+## Data Collection & Processing 📊
+
+After login, the app retrieves your saved tracks and extracts the following audio features:
+
+- **Acousticness**: How acoustic the track is.
+- **Danceability**: How suitable the track is for dancing.
+- **Energy**: A measure of intensity and activity.
+- **Valence**: The musical positiveness or happiness of a track.
+- **Instrumentalness**: Whether a track is instrumental.
+- **Tempo**: Speed of the track, in BPM.
+- **Speechiness**: The presence of spoken words in the track.
+- **Liveness**: Whether the track was recorded live.
+
+These features, combined with artist, genre, and album data, are stored in **MongoDB** for clustering analysis.
+
+---
+
+## Track Clustering Algorithm 🔍
+
+The core of this application is a **Weighted KNN-Means Algorithm**, which clusters tracks into groups based on their audio features, genres, artists, and albums. This algorithm optimizes for balance between multiple dimensions of similarity, so that playlists feel cohesive and personalized. Over time, the algorithm adjusts based on user feedback to improve accuracy and user satisfaction.
+
+### Clustering Process:
+1. **Initial Clustering**: Tracks are analyzed and grouped based on their audio features.
+2. **User Feedback Loop**: The app identifies the three most prominent features contributing to each cluster. When a user selects a playlist, these features get slightly more weight in future clustering, personalizing recommendations.
+3. **Playlist Updates**: New clusters are generated based on updated data, ensuring that user preferences are reflected in future playlists.
+
+---
+
+## Personalized Playlist Creation 🎼
+
+Once the tracks are clustered, users can create playlists directly from the app. The app fetches track URIs from Spotify, generates a new playlist, and adds the clustered tracks to it, providing a seamless and tailored listening experience.
+
+---
+
+## Future Enhancements 🌱
+
+- **Improved Clustering**: Further refinement of the algorithm to better account for nuanced user preferences.
+- **Real-Time Feedback**: Enhanced user feedback integration to dynamically adjust playlists based on evolving listening habits.
+- **UI Enhancements**: Improving the user interface for a more engaging experience.
+- **Additional Filters**: Adding filters for moods, tempos, or release years, giving users more control over the playlists they generate.
+
+---
+
+## Contributing 🤝
+
+Feel free to fork the repository, open issues, or submit pull requests. Contributions are always welcome!
+
+---
+
+---
+
+Happy listening! 🎧✨
