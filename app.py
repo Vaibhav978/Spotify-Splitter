@@ -10,7 +10,6 @@ import asyncio
 import time
 from spotify import *
 import spotipy  
-import pandas as pd
 from classification import *
 from pymongo import MongoClient
 import subprocess
@@ -24,7 +23,9 @@ app.secret_key = os.urandom(24)
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
+print(CLIENT_ID)
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+print(CLIENT_SECRET)
 SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
 uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
@@ -32,7 +33,7 @@ uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb
 
 SPOTIFY_REDIRECT_URI = ""
 if os.getenv("FLASK_ENV") == "production":
-    SPOTIFY_REDIRECT_URI ="https://spotify-helper.onrender.com/homepage"
+    SPOTIFY_REDIRECT_URI ="https://spotify-splitter.elasticbeanstalk.com/homepage"
 else:
     SPOTIFY_REDIRECT_URI =  "http://127.0.0.1:5002/homepage"
 # MongoDB connection
@@ -144,7 +145,7 @@ def get_user_json_data(token):
 async def construct_tracks_json(sp):
     print("Entered construct_tracks_json")
     count = 1
-    user_tracks = sp.current_user_saved_tracks()
+    current_user_tracks = sp.current_user_saved_tracks()
     artists_found = set()
     spotify_id = session.get('spotify_id')
     users_collection.update_one(
@@ -153,16 +154,19 @@ async def construct_tracks_json(sp):
         upsert=True
     )
 
-    while user_tracks:
+    while current_user_tracks:
         # Fetch existing user entry from the database for each iteration
         user_entry = users_collection.find_one({"spotify_id": spotify_id})
         existing_tracks = user_entry['tracks'] if user_entry and 'tracks' in user_entry else []
 
-        track_ids = [item['track']['id'] for item in user_tracks['items']]
+        existing_track_ids = [track['id'] for track in existing_tracks]
+
+
+        track_ids = [item['track']['id'] for item in current_user_tracks['items']]
         batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
 
         # Collect all artist IDs
-        for item in user_tracks['items']:
+        for item in current_user_tracks['items']:
             track = item['track']
             artist_ids = [artist['id'] for artist in track['artists']]
             artists_found.update(artist_ids)
@@ -174,7 +178,7 @@ async def construct_tracks_json(sp):
             all_tracks = []
 
             features = await get_audio_features_with_retry(sp, batch)
-            for i, item in enumerate(user_tracks['items']):
+            for i, item in enumerate(current_user_tracks['items']):
                 track = item['track']
                 track_name = track['name']
                 album = track['album']['name']
@@ -220,10 +224,11 @@ async def construct_tracks_json(sp):
                 upsert=True
             )
 
-        if user_tracks['next']:
-            user_tracks = sp.next(user_tracks)
+        if current_user_tracks['next']:
+            current_user_tracks = sp.next(current_user_tracks)
         else:
             break
+
 
 
 async def get_audio_features_with_retry(sp, track_ids, retries=5, backoff_factor=2):
@@ -252,13 +257,7 @@ async def get_genres_with_retry(sp, artist_ids, retries=5, backoff_factor=2):
                     genres_dict[artist['id']] = artist.get('genres', [])
             return genres_dict
         except spotipy.exceptions.SpotifyException as e:
-            if e.http_status == 429:
-                retry_after = int(e.headers.get('Retry-After', backoff_factor * (2 ** i)))
-                print(f"Rate limit exceeded. Retrying after {retry_after} seconds...")
-                await asyncio.sleep(retry_after)
-            else:
-                raise e
-    print(f"Failed to retrieve genres for artists {artist_ids} after {retries} retries")
+            print(f"An exception occured: {e}")
     return genres_dict
 
 @app.route("/")
@@ -328,11 +327,12 @@ def render_homepage():
     environment = os.getenv("FLASK_ENV")
     code = request.args.get("code")
     token = session.get('token')
-
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-
+    if not token:
+        token = refresh_token()
+        print(token)
     if token:
         user_data = get_user_json_data(token)
         session['spotify_id'] = user_data.get('id')
@@ -340,6 +340,7 @@ def render_homepage():
         display_name = user_data.get('display_name', '')
         session['display_name'] = display_name
     else:
+        print("Couldn't retrieve token")
         display_name = session.get('display_name', '')
 
     return render_template('homepage.html', display_name=display_name, environment = environment)
@@ -384,7 +385,8 @@ def update_tracks():
         if code and (not token or token_expired()):
             token = get_token(code)
             session['token'] = token
-
+        if not token:
+            token = refresh_token()
         if token:
             sp = Spotify(auth=token)
             # Call construct_tracks_json to save tracks to the database
@@ -477,7 +479,7 @@ def create_playlist():
 
 
 
-def add_tracks_to_playlist( playlist_id, tracks):
+def add_tracks_to_playlist(playlist_id, tracks):
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
                                                    client_secret=CLIENT_SECRET,
                                                    redirect_uri=SPOTIFY_REDIRECT_URI,
@@ -497,7 +499,7 @@ def add_tracks_to_playlist( playlist_id, tracks):
     except spotipy.SpotifyException as e:
         print(f"Spotify exception occurred: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        return
 
 #this gives an error due to the fact the add isn't working correctly.
 def verify_playlist_contents(token, playlist_id):
