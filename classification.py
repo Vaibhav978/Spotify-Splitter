@@ -173,7 +173,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
             print(f"Missing {missing_count} new labels. Assigning them manually.")
             
             # Recompute distances to large cluster centers for all small-cluster tracks
-            distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
+            assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
             
             # For the missing labels, assign them to the closest valid cluster
             missing_labels = [remaining_clusters[int(assignment)] for assignment in assignments[:missing_count]]
@@ -203,7 +203,6 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
         print(f"Cluster {cluster}: {count} tracks")
 
     # Reassign cluster labels to be sequential
-        # Reassign cluster labels to be sequential
     unique_labels = sorted(df['cluster_label'].unique())
     label_map = {old_label: new_label for new_label, old_label in enumerate(unique_labels)}
     df['cluster_label'] = df['cluster_label'].map(label_map)
@@ -225,6 +224,12 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     print(f"\nClustering completed. Results saved to {output_csv}")
     return clusters_json
 
-# Example usage
-spotify_id = 'd722jkq02u40mfghknaczltac'
-cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+
+def extract_top_genres_per_cluster(df, genres_encoded, mlb_genres, cluster_labels, top_n=2):
+    # Create a DataFrame for genres with cluster labels
+    genre_df = pd.DataFrame(genres_encoded, columns=mlb_genres.classes_)
+    genre_df['cluster_label'] = cluster_labels
+    
+    # Dictionary to store top genres per cluster
+    top_genres_per_cluster = {}
+

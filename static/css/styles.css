@@ -14,21 +14,21 @@ body {
 }
 label {
     font-size: 1.2em;
-    color: #1DB954;
+    color: #1AAE4A;
     margin-bottom: 10px;
     display: block;
 }
 h1 {
     font-size: 2.5em;
     margin-bottom: 20px;
-    color: #1DB954;
+    color: #1AAE4A;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 h2, #instructions {
     font-size: 1.5em;
     margin-bottom: 20px;
-    color: #1DB954;
+    color: #1AAE4A;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -78,7 +78,7 @@ button,
 /* Button Styling */
 button,
 [type="submit"] {
-    background-color: #1DB954; /* Green */
+    background-color: #1AAE4A; /* Green */
     color: white;
     cursor: pointer;
 }
@@ -94,7 +94,7 @@ button:hover,
     display: inline-block;
     padding: 15px 30px;
     font-size: 18px;
-    background-color: #1DB954;
+    background-color: #1AAE4A;
     color: white;
     text-decoration: none;
     border: none;
@@ -176,7 +176,7 @@ button:hover,
     font-size: 0.8rem;
     padding: 5px 10px;
     margin: 5px 0;
-    background-color: #1DB954; /* Green button */
+    background-color: #1AAE4A; /* Green button */
     color: white;
     border: none;
     border-radius: 5px;
@@ -296,21 +296,21 @@ body {
 }
 label {
     font-size: 1.2em;
-    color: #1DB954;
+    color: #1AAE4A;
     margin-bottom: 10px;
     display: block;
 }
 h1 {
     font-size: 2.5em;
     margin-bottom: 20px;
-    color: #1DB954;
+    color: #1AAE4A;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 h2, #instructions {
     font-size: 1.5em;
     margin-bottom: 20px;
-    color: #1DB954;
+    color: #1AAE4A;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
@@ -360,7 +360,7 @@ button,
 /* Button Styling */
 button,
 [type="submit"] {
-    background-color: #1DB954; /* Green */
+    background-color: #1AAE4A; /* Green */
     color: white;
     cursor: pointer;
 }
@@ -376,7 +376,7 @@ button:hover,
     display: inline-block;
     padding: 15px 30px;
     font-size: 18px;
-    background-color: #1DB954;
+    background-color: #1AAE4A;
     color: white;
     text-decoration: none;
     border: none;
@@ -469,7 +469,7 @@ button:hover,
     font-size: 0.8rem;
     padding: 5px 10px;
     margin: 5px 0;
-    background-color: #1DB954; /* Green button */
+    background-color: #1AAE4A; /* Green button */
     color: white;
     border: none;
     border-radius: 5px;
@@ -622,7 +622,7 @@ button:hover,
 /* Spinner element */
 .spinner {
     border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #23a027; /* Blue */
+    border-top: 8px solid #23a027; /* green */
     border-radius: 50%;
     width: 60px;
     height: 60px;

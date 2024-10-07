@@ -23,9 +23,7 @@ app.secret_key = os.urandom(24)
 
 load_dotenv()
 CLIENT_ID = os.getenv("CLIENT_ID")
-print(CLIENT_ID)
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-print(CLIENT_SECRET)
 SCOPE = "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private"
 BASE_URL = "https://api.spotify.com/v1"
 uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
@@ -145,53 +143,67 @@ def get_user_json_data(token):
 async def construct_tracks_json(sp):
     print("Entered construct_tracks_json")
     count = 1
-    current_user_tracks = sp.current_user_saved_tracks()
-    artists_found = set()
+    
+    # Fetch the saved tracks from Spotify API
+    new_tracks = sp.current_user_saved_tracks()
+    
+    # Get the user's Spotify ID
     spotify_id = session.get('spotify_id')
-    users_collection.update_one(
-        {"spotify_id": spotify_id},
-        {"$set": {"tracks": []}},  # Set tracks to an empty array
-        upsert=True
-    )
+    
+    # Fetch the existing tracks from the database for this user
+    user_entry = users_collection.find_one({"spotify_id": spotify_id})
+    existing_tracks = user_entry['tracks'] if user_entry and 'tracks' in user_entry else []
 
-    while current_user_tracks:
-        # Fetch existing user entry from the database for each iteration
-        user_entry = users_collection.find_one({"spotify_id": spotify_id})
-        existing_tracks = user_entry['tracks'] if user_entry and 'tracks' in user_entry else []
+    # Create a set of track IDs for already existing tracks in the database
+    existing_track_ids = {track['id'] for track in existing_tracks}
 
-        existing_track_ids = [track['id'] for track in existing_tracks]
+    # Prepare a list to collect artists and new tracks to process
+    artists_found = set()
+    all_tracks = []
 
+    # Process the new tracks from Spotify
+    while new_tracks:
+        # Get the new track IDs
+        new_track_items = [item['track'] for item in new_tracks['items']]
 
-        track_ids = [item['track']['id'] for item in current_user_tracks['items']]
-        batched_track_ids = [track_ids[i:i + 50] for i in range(0, len(track_ids), 50)]
+        # Filter out the tracks that are already in the database
+        updated_tracks = [track for track in new_track_items if track['id'] not in existing_track_ids]
 
-        # Collect all artist IDs
-        for item in current_user_tracks['items']:
-            track = item['track']
+        if not updated_tracks:
+            print("No new tracks to process.")
+            break  # If no new tracks, we can break the loop
+
+        # Collect artist IDs from the new tracks
+        for track in updated_tracks:
             artist_ids = [artist['id'] for artist in track['artists']]
             artists_found.update(artist_ids)
 
-        # Fetch genres for all unique artist IDs
+        # Fetch genres for all unique artist IDs (only for new tracks)
         artist_genres_dict = await get_genres_with_retry(sp, list(artists_found))
 
-        for batch in batched_track_ids:
-            all_tracks = []
+        # Split the updated track IDs into batches of 50 for audio feature fetching
+        updated_track_ids = [track['id'] for track in updated_tracks]
+        batched_track_ids = [updated_track_ids[i:i + 50] for i in range(0, len(updated_track_ids), 50)]
 
+        # Fetch audio features in batches and process them
+        for batch in batched_track_ids:
             features = await get_audio_features_with_retry(sp, batch)
-            for i, item in enumerate(current_user_tracks['items']):
-                track = item['track']
+
+            for i, track in enumerate(updated_tracks):
+                track_id = track['id']
                 track_name = track['name']
                 album = track['album']['name']
                 artists = [artist['name'] for artist in track['artists']]
                 artist_ids = [artist['id'] for artist in track['artists']]
-                track_id = track['id']
 
                 # Collect genres for the track from artist_genres_dict
                 genres = set()
                 for artist_id in artist_ids:
                     genres.update(artist_genres_dict.get(artist_id, []))
 
-                feature = features[i]
+                feature = features[i] if i < len(features) else None  # Handle case if feature is missing
+
+                # Create track info dictionary
                 if feature:
                     track_info = {
                         "name": track_name,
@@ -210,26 +222,22 @@ async def construct_tracks_json(sp):
                         "genres": list(genres),  # Convert set to list for JSON serialization
                     }
                     print(f"Track {count}: {track_info['name']} - Genres: {track_info['genres']}")
-
-                    count += 1
                     all_tracks.append(track_info)
+                    count += 1
 
-            # Combine existing tracks with the new ones from this batch
-            existing_tracks.extend(all_tracks)
-
-            # Update the database with the combined tracks
+        # Update the database with the new tracks
+        if all_tracks:
             users_collection.update_one(
                 {"spotify_id": spotify_id},
-                {"$set": {"tracks": existing_tracks}},
+                {"$addToSet": {"tracks": {"$each": all_tracks}}},  # Add new tracks to existing ones
                 upsert=True
             )
 
-        if current_user_tracks['next']:
-            current_user_tracks = sp.next(current_user_tracks)
+        # Fetch next batch of saved tracks from Spotify if available
+        if new_tracks['next']:
+            new_tracks = sp.next(new_tracks)
         else:
-            break
-
-
+            break  # No more tracks to fetch
 
 async def get_audio_features_with_retry(sp, track_ids, retries=5, backoff_factor=2):
     for i in range(retries):
@@ -317,9 +325,6 @@ def render_splitter():
     if code and (not token or token_expired()):
         token = get_token(code)
         session['token'] = token
-
-
-
     return render_template('splitter.html', environment = environment)
 
 @app.route("/homepage")
@@ -452,8 +457,6 @@ def create_playlist():
         cluster = clusters_data.get(cluster_number)
         if not cluster:
             return jsonify({"error": "Invalid cluster number or cluster not found"})
-        spotify_name_list = [track.get('name')for track in cluster if track.get('name')]
-        #print(spotify_name_list)
         spotify_id_list = [track.get('id') for track in cluster if track.get('id')]
         if not spotify_id_list:
             return jsonify({"error": "No valid tracks found in the cluster"})
@@ -476,8 +479,6 @@ def create_playlist():
         return jsonify({"success": "Playlist created and tracks added successfully", "playlistId": playlist_id, "token": token })
     else:
         return jsonify({"error": "No token available or token expired"})
-
-
 
 def add_tracks_to_playlist(playlist_id, tracks):
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
