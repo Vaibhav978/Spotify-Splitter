@@ -429,10 +429,10 @@ def split_tracks():
         token = session.get('token')
 
         if code and (not token or token_expired()):
-            token = get_token(code)
+            token = get_token(code)             
             session['token'] = token
         if token:
-            classified_playlists = cluster_tracks_with_visualization(spotify_id, load_existing_model=True)
+            classified_playlists = cluster_tracks(spotify_id, load_existing_model=True)
             return classified_playlists
 
 @app.route('/createplaylist', methods=['POST'])

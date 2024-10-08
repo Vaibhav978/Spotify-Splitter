@@ -10,6 +10,7 @@ import os
 from sklearn.preprocessing import PowerTransformer
 from sklearn.metrics import pairwise_distances_argmin_min
 import certifi
+import json
 
 # MongoDB connection
 uri = "mongodb+srv://vibhusingh925:e%2A%21%2AsWHJ_iWQy6*@spotifydb.vgf4v.mongodb.net/spotifydb?retryWrites=true&w=majority&tls=true"
@@ -17,7 +18,7 @@ client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client.spotify_db
 users_collection = db.users
 
-def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_clusters.csv', model_path='kmeans_model.pkl', genres_mlb_path='genres_mlb.pkl', artists_mlb_path='artists_mlb.pkl', feature_dim_path='feature_dim.pkl', load_existing_model=False):
+def cluster_tracks(spotify_id, output_csv='tracks_with_clusters.csv', model_path='kmeans_model.pkl', genres_mlb_path='genres_mlb.pkl', artists_mlb_path='artists_mlb.pkl', feature_dim_path='feature_dim.pkl', load_existing_model=False):
     # Fetch track data from MongoDB using Spotify ID
     user_data = users_collection.find_one({"spotify_id": spotify_id})
     if not user_data:
@@ -62,7 +63,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     genres_encoded = mlb_genres.transform(df['genres'])
     genres_encoded = genres_encoded.astype(float)
-    genres_encoded *= 4  # Adjust the weight of genre features if needed
+    genres_encoded *= 3.5  # Adjust the weight of genre features if needed
 
     # One-hot encode artists
     if load_existing_model and os.path.exists(artists_mlb_path):
@@ -76,7 +77,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
 
     artists_encoded = mlb_artists.transform(df['artists'])
     artists_encoded = artists_encoded.astype(float)
-    artists_encoded *= 4 # Adjust the weight of artist features if needed
+    artists_encoded *= 2.5 # Adjust the weight of artist features if needed
 
     # Combine normalized features with one-hot encoded genres and artists
     X_combined = np.hstack((X_transformed, genres_encoded, artists_encoded))
@@ -137,10 +138,10 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     # Initial cluster counts
     cluster_counts = df['cluster_label'].value_counts().sort_index()
 
-    min_cluster_size = 10  # Define your threshold
+    min_cluster_size = 23  # Define your threshold
 
     iteration = 1
-    while True and iteration < 50:
+    while iteration < 50:
         small_clusters = cluster_counts[cluster_counts < min_cluster_size].index.tolist()
         if len(small_clusters) == 0:
             break
@@ -173,7 +174,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
             print(f"Missing {missing_count} new labels. Assigning them manually.")
             
             # Recompute distances to large cluster centers for all small-cluster tracks
-            assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
+            distances, assignments = pairwise_distances_argmin_min(small_cluster_combined_features, large_cluster_centers)
             
             # For the missing labels, assign them to the closest valid cluster
             missing_labels = [remaining_clusters[int(assignment)] for assignment in assignments[:missing_count]]
@@ -203,6 +204,7 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
         print(f"Cluster {cluster}: {count} tracks")
 
     # Reassign cluster labels to be sequential
+        # Reassign cluster labels to be sequential
     unique_labels = sorted(df['cluster_label'].unique())
     label_map = {old_label: new_label for new_label, old_label in enumerate(unique_labels)}
     df['cluster_label'] = df['cluster_label'].map(label_map)
@@ -222,14 +224,58 @@ def cluster_tracks_with_visualization(spotify_id, output_csv='tracks_with_cluste
     df_sorted.to_csv(output_csv, index=False)
 
     print(f"\nClustering completed. Results saved to {output_csv}")
+
+    top_genres = extract_top_encoded_characteristics_per_cluster(df_sorted, genres_encoded, mlb_genres)
+
+    top_artists = extract_top_encoded_characteristics_per_cluster(df_sorted, artists_encoded, mlb_artists)
+
+    for  i, genres in enumerate(top_genres, start = 1):
+        print(f"Top genres for playlist {i} ")
+        print(genres)
+
+    for  i, artists in enumerate(top_artists, start = 1):
+        print(f"Top artists for playlist {i}")
+        print(artists)
+
+
+    print(json.dumps(top_genres))
+    print(json.dumps(top_artists))
     return clusters_json
 
 
-def extract_top_genres_per_cluster(df, genres_encoded, mlb_genres, cluster_labels, top_n=2):
-    # Create a DataFrame for genres with cluster labels
-    genre_df = pd.DataFrame(genres_encoded, columns=mlb_genres.classes_)
-    genre_df['cluster_label'] = cluster_labels
-    
-    # Dictionary to store top genres per cluster
-    top_genres_per_cluster = {}
 
+
+def extract_top_encoded_characteristics_per_cluster(df, genres_encoded, mlb_genres):
+    top_genres = []
+    # Iterate through unique clusters
+    for cluster in df['cluster_label'].unique():
+
+        # Get the indices of tracks in the current cluster
+        cluster_tracks_indices = df[df['cluster_label'] == cluster].index
+
+        # Extract the genres for the tracks in the current cluster
+        cluster_genres = genres_encoded[cluster_tracks_indices]
+
+        # Calculate the sum of genres for this cluster
+        genre_sums = cluster_genres.sum(axis=0)
+
+        # Get the top genres
+        top_genre_indices = np.argsort(genre_sums)[-2:][::-1]  # Get top 5 genres
+        top_genres_list = mlb_genres.inverse_transform(np.eye(len(genre_sums))[top_genre_indices])
+
+
+        top_genres.append(top_genres_list)
+
+        top_genres[len(top_genres) - 1] = [' & '.join(artist) for artist in top_genres[cluster]]
+
+    print(top_genres)
+    return top_genres
+
+
+
+
+
+
+# Example usage
+spotify_id = 'd722jkq02u40mfghknaczltac'
+cluster_tracks(spotify_id, load_existing_model=True)

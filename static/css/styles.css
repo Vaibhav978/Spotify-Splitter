@@ -39,11 +39,7 @@ p {
     line-height: 1.5;
 }
 
-.container {
-    max-width: 600px;
-    text-align: center;
-    animation: slide-in 1s ease-out forwards;
-}
+
 
 /* Logo Styling */
 .logo {
@@ -152,19 +148,7 @@ button:hover,
     margin-bottom: 10px;
 }
 
-/* Playlist Container Styling */
-.playlist-container {
-    flex: 1;
-    min-width: 300px; /* Set a minimum width to ensure uniformity */
-    max-width: 400px; /* Set a maximum width to prevent overflow */
-    border-radius: 5px;
-    padding: 10px;
-    margin: 5px;
-    background-color: rgba(255, 255, 255, 0.1); /* Make background semi-transparent */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    font-size: 0.8rem;
-    border: none
-}
+
 
 .playlist-container h4 {
     margin: 0 0 5px;
@@ -450,7 +434,7 @@ button:hover,
     flex: 1;
     min-width: 300px; /* Set a minimum width to ensure uniformity */
     max-width: 400px; /* Set a maximum width to prevent overflow */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
+    border: none; /* Make border transparent */
     border-radius: 5px;
     padding: 10px;
     margin: 5px;
@@ -472,7 +456,6 @@ button:hover,
     background-color: #1AAE4A; /* Green button */
     color: white;
     border: none;
-    border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.4s, transform 0.4s;
 }
@@ -489,8 +472,7 @@ button:hover,
     font-size: 0.8rem;
     background: rgba(255, 255, 255, 0.1); /* Ensure dropdown background matches overall style */
     color: white; /* Ensure text color is visible */
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Make border transparent */
-    border-radius: 5px;
+    border: none; /* Make border transparent */
 }
 
 /* Columns Container Styling */

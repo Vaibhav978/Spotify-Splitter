@@ -13,12 +13,12 @@
         <a href="{% if environment == 'production' %}https://spotify-splitter.elasticbeanstalk.com/homepage{% else %}http://127.0.0.1:5002/homepage{% endif %}" id="artistButton" class="btn">Go Back to Home</a>
     </div>
     <div id = 'instructions'>
-        <p>Instructions:</p>
+        <!-- <p>Instructions:</p>
         <ol>
             <li>Click "Update Your Tracks in The Database" to refresh your saved tracks from Spotify. Note: This can take time if you have many tracks saved</li>
             <li>Click "Display Tracks" to view your saved tracks.</li>
             <li>Click "Split Tracks into Playlists" to divide your saved tracks into multiple playlists based on clustering.</li>
-        </ol>
+        </ol> -->
     </div>
     <div id="spinner" class="hidden-spinner">
         <div class="spinner-overlay">
@@ -26,9 +26,9 @@
         </div>
     </div>
     <div>
-        <button class="btn" id="updateTracksButton" onclick="updateTracks()">Update Your Tracks in The Database</button>
-        <button class="btn" id="fetchTracksButton" onclick="submitAlbum()">Display Tracks</button>
-        <button class="btn" id="fadeButton" onclick="getSplitPlaylists()">Split Tracks into Playlists</button>
+        <button class="btn" id="updateTracksButton" onclick="updateTracks()">Display Tracks</button>
+       <!-- <button class="btn" id="fetchTracksButton" onclick="submitAlbum()">Display Tracks</button> -->
+        <button class="btn" id="fadeButton" onclick="getSplitPlaylists()">Create Playlists</button>
     </div>
     <div id="tracks_container">
         <!-- Tracks will be displayed here -->

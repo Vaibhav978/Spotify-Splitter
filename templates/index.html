@@ -4,43 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">    <style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
         body {
-            background-color: black;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #000000, #434343);
             color: white;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
             text-align: center;
         }
+
         .header {
-            margin-top: 50px;
-            margin-bottom: 30px;
+            margin-top: 30px;
+            margin-bottom: 50px;
         }
+
+        .header h1 {
+            font-size: 3em;
+            color: #1AAE4A;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
         .btn {
             display: inline-block;
             padding: 15px 30px;
-            font-size: 18px;
-            background-color: #1DB954;
+            font-size: 1.5em;
+            background-color: #1AAE4A;
             color: white;
             text-decoration: none;
             border: none;
             cursor: pointer;
             border-radius: 5px;
             margin: 10px;
-            transition-duration: 0.4s;
+            transition: background-color 0.4s, transform 0.4s;
         }
+
         .btn:hover {
-            background-color: #1ed760; /* Darker Green */
+            background-color: #1ed760;
+            transform: scale(1.05);
+        }
+
+        /* Ensure button is always centered below the header */
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .btn {
+                font-size: 1.2em;
+                padding: 10px 20px;
+            }
+
+            .header h1 {
+                font-size: 2.5em;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Welcome!</h1>
-    </div>
-    <div>
-        <a href="/login" class="btn">Login to Spotify</a>
+    <div class="content-wrapper">
+        <div class="header">
+            <h1>Welcome!</h1>
+        </div>
+        <div class="btn-container">
+            <a href="/login" class="btn">Login to Spotify</a>
+        </div>
     </div>
 </body>
 </html>

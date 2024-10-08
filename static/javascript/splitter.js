@@ -37,7 +37,7 @@ $(document).ready(function() {
         }
     }
 
-    // Function to load playlist tracks from Spotify
+    //Function to load playlist tracks from Spotify
     function loadPlaylistTracks(playlistId) {
         $.ajax({
             url: `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
@@ -63,7 +63,7 @@ $(document).ready(function() {
                 updateSplitButtonState();
             },
             error: function (xhr, status, error) {
-                console.error("Failed to load playlist tracks:", error);
+                console.error("Failed to load playlist tracks:", error, status, xhr);
             }
         });
     }
@@ -99,21 +99,25 @@ function updateTracks() {
     container.innerHTML = '';  // Clear existing content
 
     // Make the fadeButton, num_albums, and tracks_container invisible and disable them
-    hideElementsWhenGettingInformation()
-    showSpinner()
+    hideElementsWhenGettingInformation();
+    showSpinner();
+
     fetch('/updatetracks')
         .then(response => {
-            console.log(response.json)
+            console.log(response.json);
             return response.json();
         })
         .then(data => {
-            console.log(data)
-            displayTracks(data);
+            console.log(data);
+            displayTracks(data);  // Display tracks
         })
         .catch(error => console.error('Error fetching tracks:', error))
-        .then(() => showElements()).finally(() => hideSpinner());
-        
+        .finally(() => {
+            hideSpinner();
+            showElements();  // Ensure buttons are shown again after fetching tracks
+        });
 }
+
 
 function displayPlaylists(playlists) {
     console.log("DATA");
